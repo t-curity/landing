@@ -1,0 +1,21 @@
+<svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE103"/>
+      <stop offset="100%" style="stop-color:#FFD000"/>
+    </linearGradient>
+    <filter id="glowEffect">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- T: (노란색 + 글로우) -->
+  <text x="0" y="37" font-family="'Space Grotesk', Arial, sans-serif" font-size="34" font-weight="700" fill="url(#yellowGradient)" filter="url(#glowEffect)">T:</text>
+  
+  <!-- CURITY (흰색) -->
+  <text x="48" y="37" font-family="'Space Grotesk', Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">CURITY</text>
+</svg>

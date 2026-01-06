@@ -1,0 +1,14 @@
+<svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="navyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#011142"/>
+      <stop offset="100%" style="stop-color:#021A5C"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- T: (노란색/골드) -->
+  <text x="0" y="37" font-family="'Space Grotesk', Arial, sans-serif" font-size="34" font-weight="700" fill="#D4A800">T:</text>
+  
+  <!-- CURITY (네이비) -->
+  <text x="48" y="37" font-family="'Space Grotesk', Arial, sans-serif" font-size="34" font-weight="700" fill="url(#navyGradient)">CURITY</text>
+</svg>
