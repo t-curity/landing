@@ -1,7 +1,640 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './App.css';
+import NoiseTest from './NoiseTest';
+import PricingPage from './PricingPage';
 
-// 실제 SDK 호출 결과를 보여주는 컴포넌트
+// ============================================
+// 데모용 CAPTCHA 컴포넌트 (Mock)
+// ============================================
+
+// 샘플 이미지 데이터
+const DEMO_QUESTIONS = [
+  {
+    question: '🐕 강아지를 모두 찾아 드래그하세요',
+    images: ['🐕', '🚗', '🍕', '🎸', '🐕', '🏠', '⚽', '🎨', '🐕'],
+    answers: [0, 4, 8],
+    answerCount: 3,
+  },
+  {
+    question: '🍎 과일을 모두 찾아 드래그하세요',
+    images: ['🍎', '🚀', '🍊', '💎', '🍇', '🔥', '⭐', '🍌', '🌙'],
+    answers: [0, 2, 4, 7],
+    answerCount: 4,
+  },
+  {
+    question: '🚗 탈것을 모두 찾아 드래그하세요',
+    images: ['🚗', '🌸', '✈️', '🎵', '🚢', '🍰', '🚲', '📱', '🎭'],
+    answers: [0, 2, 4, 6],
+    answerCount: 4,
+  },
+];
+
+// 노이즈 효과 함수들
+const noiseEffects = {
+  adversarial: (ctx, width, height, intensity = 25) => {
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] > 0) {
+        data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  },
+  stripes: (ctx, width, height, opacity = 0.2) => {
+    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+    ctx.lineWidth = 1.5;
+    for (let i = -height; i < width + height; i += 5) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + height, height);
+      ctx.stroke();
+    }
+  },
+  occlusion: (ctx, width, height, coverage = 0.15) => {
+    const blockSize = 10;
+    const blocks = Math.floor((width * height * coverage) / (blockSize * blockSize));
+    for (let i = 0; i < blocks; i++) {
+      ctx.fillStyle = ['#000', '#333', '#222'][Math.floor(Math.random() * 3)];
+      ctx.fillRect(
+        Math.random() * (width - blockSize),
+        Math.random() * (height - blockSize),
+        blockSize, blockSize
+      );
+    }
+  },
+};
+
+// 동적 노이즈 생성 함수 (사용 안 함)
+const generateDynamicNoise = (ctx, width, height, seed = 0) => {
+  return ctx.createImageData(width, height);
+};
+
+// Adversarial Perturbation만 적용하는 함수
+const compositeImageWithNoise = (ctx, emoji, width, height, noiseOpacity = 0.7, seed = 0) => {
+  // 이미지 그리기
+  ctx.fillStyle = '#1a1a3e';
+  ctx.fillRect(0, 0, width, height);
+  ctx.font = `${width * 0.5}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, width / 2, height / 2);
+  
+  // Adversarial Perturbation 적용
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const intensity = 25; // 노이즈 강도
+  
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] > 0) {
+      data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
+    }
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+};
+
+// AI가 "잘못 인식"하는 라벨들
+const AI_WRONG_LABELS = {
+  '🐕': ['고양이?', '늑대?', '여우?', '곰?', '???'],
+  '🚗': ['트럭?', '버스?', '물체?', '???'],
+  '🍕': ['파이?', '원형?', '???'],
+  '🎸': ['바이올린?', '물체?', '???'],
+  '🏠': ['건물?', '상자?', '???'],
+  '⚽': ['원?', '공?', '???'],
+  '🎨': ['물체?', '???'],
+  '🍎': ['공?', '토마토?', '체리?', '???'],
+  '🚀': ['비행기?', '미사일?', '???'],
+  '🍊': ['공?', '레몬?', '???'],
+  '💎': ['삼각형?', '물체?', '???'],
+  '🍇': ['물체?', '???'],
+  '🔥': ['꽃?', '물체?', '???'],
+  '⭐': ['물체?', '???'],
+  '🍌': ['물체?', '???'],
+  '🌙': ['원?', 'C자?', '???'],
+  '🌸': ['물체?', '분홍?', '???'],
+  '✈️': ['새?', '로켓?', '???'],
+  '🎵': ['물체?', '???'],
+  '🚢': ['건물?', '상자?', '???'],
+  '🍰': ['상자?', '삼각형?', '???'],
+  '🚲': ['물체?', '???'],
+  '📱': ['상자?', '직사각형?', '???'],
+  '🎭': ['얼굴?', '물체?', '???'],
+};
+
+// AI 시점용 극단적 노이즈
+const applyAIViewNoise = (ctx, width, height) => {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  
+  // 극심한 픽셀 노이즈
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * 100));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * 100));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * 100));
+  }
+  ctx.putImageData(imageData, 0, 0);
+  
+  // 심한 블록 가림
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = `rgba(${Math.random()*100}, ${Math.random()*100}, ${Math.random()*100}, 0.7)`;
+    ctx.fillRect(
+      Math.random() * width * 0.7,
+      Math.random() * height * 0.7,
+      15 + Math.random() * 15,
+      15 + Math.random() * 15
+    );
+  }
+  
+  // 글리치 라인
+  for (let i = 0; i < 5; i++) {
+    ctx.strokeStyle = `rgba(255, 0, ${Math.random()*255}, 0.5)`;
+    ctx.lineWidth = 2 + Math.random() * 3;
+    ctx.beginPath();
+    ctx.moveTo(0, Math.random() * height);
+    ctx.lineTo(width, Math.random() * height);
+    ctx.stroke();
+  }
+};
+
+// 데모 CAPTCHA 컴포넌트
+function DemoCaptcha({ onClose, onComplete }) {
+  const [phase, setPhase] = useState('intro');
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPath, setDragPath] = useState([]);
+  const [phaseAResult, setPhaseAResult] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [droppedItems, setDroppedItems] = useState([]);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [noiseEnabled, setNoiseEnabled] = useState(true);
+  const [aiViewMode, setAiViewMode] = useState(false);
+  const [aiLabels, setAiLabels] = useState([]);
+  const [dynamicNoiseEnabled, setDynamicNoiseEnabled] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const animationRef = useRef(null);
+  const frameCountRef = useRef(0);
+  
+  const canvasRef = useRef(null);
+  const imageCanvasRefs = useRef([]);
+
+  // Phase A 시작
+  const startPhaseA = () => {
+    setPhase('phaseA');
+    setDragPath([]);
+    setPhaseAResult(null);
+  };
+
+  // Phase A 드래그 핸들러
+  const handlePhaseAStart = (e) => {
+    e.preventDefault();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    
+    if (y < 0.25) {
+      setIsDragging(true);
+      setDragPath([{ x, y, t: Date.now() }]);
+    }
+  };
+
+  const handlePhaseAMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    setDragPath(prev => [...prev, { x, y, t: Date.now() }]);
+  };
+
+  const handlePhaseAEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    if (dragPath.length > 10) {
+      const startY = dragPath[0].y;
+      const endY = dragPath[dragPath.length - 1].y;
+      
+      if (endY - startY > 0.5) {
+        setPhaseAResult('success');
+        setTimeout(() => startPhaseB(), 800);
+      } else {
+        setPhaseAResult('retry');
+        setTimeout(() => {
+          setDragPath([]);
+          setPhaseAResult(null);
+        }, 1500);
+      }
+    }
+  };
+
+  // Phase A 캔버스 그리기
+  useEffect(() => {
+    if (phase !== 'phaseA' || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+    
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    ctx.fillStyle = '#011142';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    
+    // 절취선
+    ctx.strokeStyle = 'rgba(255, 225, 3, 0.4)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath();
+    ctx.moveTo(rect.width / 2, 30);
+    ctx.lineTo(rect.width / 2, rect.height - 30);
+    ctx.stroke();
+    
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('✂️', rect.width / 2, 25);
+    
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#FFE103';
+    ctx.beginPath();
+    ctx.arc(rect.width / 2, 50, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(255, 225, 3, 0.3)';
+    ctx.beginPath();
+    ctx.arc(rect.width / 2, rect.height - 50, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFE103';
+    ctx.beginPath();
+    ctx.arc(rect.width / 2, rect.height - 50, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    if (dragPath.length > 1) {
+      ctx.strokeStyle = '#FFE103';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(dragPath[0].x * rect.width, dragPath[0].y * rect.height);
+      dragPath.forEach(point => {
+        ctx.lineTo(point.x * rect.width, point.y * rect.height);
+      });
+      ctx.stroke();
+      
+      const lastPoint = dragPath[dragPath.length - 1];
+      ctx.fillStyle = '#FFE103';
+      ctx.shadowColor = '#FFE103';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(lastPoint.x * rect.width, lastPoint.y * rect.height, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    
+    if (phaseAResult === 'success') {
+      ctx.fillStyle = 'rgba(255, 225, 3, 0.2)';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillStyle = '#FFE103';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('✓', rect.width / 2, rect.height / 2 + 15);
+    } else if (phaseAResult === 'retry') {
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillStyle = '#FF6464';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('다시 시도해주세요', rect.width / 2, rect.height / 2);
+    }
+  }, [phase, dragPath, phaseAResult]);
+
+  // Phase B 시작
+  const startPhaseB = () => {
+    const randomQ = DEMO_QUESTIONS[Math.floor(Math.random() * DEMO_QUESTIONS.length)];
+    setCurrentQuestion(randomQ);
+    setDroppedItems([]);
+    setPhase('phaseB');
+  };
+
+  // Phase B 이미지에 Adversarial Perturbation 적용
+  useEffect(() => {
+    if (phase !== 'phaseB' || !currentQuestion) return;
+    
+    // AI 라벨 생성
+    if (aiViewMode && noiseEnabled) {
+      const labels = currentQuestion.images.map(emoji => {
+        const wrongLabels = AI_WRONG_LABELS[emoji] || ['???'];
+        return wrongLabels[Math.floor(Math.random() * wrongLabels.length)];
+      });
+      setAiLabels(labels);
+    } else {
+      setAiLabels([]);
+    }
+    
+    currentQuestion.images.forEach((emoji, idx) => {
+      const canvas = imageCanvasRefs.current[idx];
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const size = 80;
+      canvas.width = size;
+      canvas.height = size;
+      
+      // 배경
+      ctx.fillStyle = '#1a1a3e';
+      ctx.fillRect(0, 0, size, size);
+      
+      // 이모지
+      ctx.font = '40px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(emoji, size / 2, size / 2);
+      
+      // Adversarial Perturbation 적용
+      if (noiseEnabled) {
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        const intensity = aiViewMode ? 80 : 25; // AI 시점은 더 강하게
+        
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
+          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
+          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      }
+    });
+  }, [phase, currentQuestion, noiseEnabled, aiViewMode]);
+
+  // Phase B 드래그 핸들러
+  const handlePhaseBDragStart = (index, e) => {
+    if (droppedItems.includes(index)) return;
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    setDraggedItem(index);
+    setDragPosition({ x: clientX, y: clientY });
+  };
+
+  const handlePhaseBDragMove = (e) => {
+    if (draggedItem === null) return;
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    setDragPosition({ x: clientX, y: clientY });
+  };
+
+  const handlePhaseBDragEnd = (e) => {
+    if (draggedItem === null) return;
+    
+    const dropZone = document.getElementById('demo-drop-zone');
+    if (dropZone) {
+      const rect = dropZone.getBoundingClientRect();
+      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      
+      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        const newDropped = [...droppedItems, draggedItem];
+        setDroppedItems(newDropped);
+        
+        if (newDropped.length >= currentQuestion.answerCount) {
+          const allCorrect = newDropped.every(idx => currentQuestion.answers.includes(idx));
+          const hasAllAnswers = currentQuestion.answers.every(idx => newDropped.includes(idx));
+          
+          if (allCorrect && hasAllAnswers) {
+            setTimeout(() => setPhase('success'), 500);
+          } else {
+            setTimeout(() => setDroppedItems([]), 1000);
+          }
+        }
+      }
+    }
+    
+    setDraggedItem(null);
+  };
+
+  // 글로벌 이벤트
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (phase === 'phaseA') handlePhaseAMove(e);
+      if (phase === 'phaseB') handlePhaseBDragMove(e);
+    };
+    
+    const handleEnd = (e) => {
+      if (phase === 'phaseA') handlePhaseAEnd();
+      if (phase === 'phaseB') handlePhaseBDragEnd(e);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [phase, isDragging, draggedItem, dragPath, droppedItems]);
+
+  return (
+    <div className="captcha-overlay" onClick={onClose}>
+      <div className="captcha-modal demo-modal" onClick={e => e.stopPropagation()}>
+        <button className="captcha-close" onClick={onClose}>×</button>
+        
+        <div className="captcha-logo">T:CURITY</div>
+        <div className="demo-badge">데모 모드</div>
+
+        {/* Intro */}
+        {phase === 'intro' && (
+          <div className="captcha-intro">
+            <div className="demo-intro-icon">🛡️</div>
+            <h3>2-Phase 인증 체험</h3>
+            <p>봇과 사람을 구분하는<br />차세대 CAPTCHA를 경험해보세요</p>
+            
+            <div className="demo-flow-preview">
+              <div className="flow-step">
+                <span>✂️</span>
+                <small>절취선 드래그</small>
+              </div>
+              <span className="flow-arrow">→</span>
+              <div className="flow-step">
+                <span>🖼️</span>
+                <small>이미지 분류</small>
+              </div>
+            </div>
+            
+            <button className="captcha-start-btn" onClick={startPhaseA}>
+              시작하기
+            </button>
+          </div>
+        )}
+
+        {/* Phase A */}
+        {phase === 'phaseA' && (
+          <div className="captcha-phase">
+            <div className="phase-header">
+              <span className="phase-badge">Phase 1</span>
+              <span className="phase-title">절취선을 따라 드래그하세요</span>
+            </div>
+            <canvas
+              ref={canvasRef}
+              className="captcha-canvas demo-canvas"
+              onMouseDown={handlePhaseAStart}
+              onTouchStart={handlePhaseAStart}
+            />
+            <p className="phase-hint">⬆️ 위에서 아래로 점선을 따라 드래그 ⬇️</p>
+          </div>
+        )}
+
+        {/* Phase B */}
+        {phase === 'phaseB' && currentQuestion && (
+          <div className="captcha-phase">
+            <div className="phase-header">
+              <span className="phase-badge">Phase 2</span>
+              <span className="phase-title">{currentQuestion.question}</span>
+            </div>
+            
+            {/* 뷰 모드 토글 */}
+            <div className="view-mode-toggle">
+              <button 
+                className={`view-btn ${!aiViewMode ? 'active' : ''}`}
+                onClick={() => setAiViewMode(false)}
+              >
+                👤 사람 시점
+              </button>
+              <button 
+                className={`view-btn ai ${aiViewMode ? 'active' : ''}`}
+                onClick={() => setAiViewMode(true)}
+                disabled={!noiseEnabled}
+              >
+                🤖 AI 시점
+              </button>
+            </div>
+            
+            {/* AI 시점 설명 */}
+            {aiViewMode && noiseEnabled && (
+              <div className="ai-view-notice">
+                <span>⚠️ AI는 Adversarial Perturbation으로 인해 정확히 인식하지 못합니다</span>
+              </div>
+            )}
+            
+            {/* 노이즈 토글 */}
+            <div className="noise-toggle">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={noiseEnabled} 
+                  onChange={(e) => {
+                    setNoiseEnabled(e.target.checked);
+                    if (!e.target.checked) setAiViewMode(false);
+                  }} 
+                />
+                <span>Adversarial Perturbation</span>
+              </label>
+            </div>
+            
+            {/* 3x3 이미지 그리드 */}
+            <div className={`captcha-grid demo-grid ${aiViewMode ? 'ai-view' : ''}`}>
+              {currentQuestion.images.map((emoji, index) => (
+                <div
+                  key={index}
+                  className={`grid-cell ${droppedItems.includes(index) ? 'selected' : ''} ${draggedItem === index ? 'dragging' : ''}`}
+                  onMouseDown={(e) => handlePhaseBDragStart(index, e)}
+                  onTouchStart={(e) => handlePhaseBDragStart(index, e)}
+                >
+                  <canvas
+                    ref={el => imageCanvasRefs.current[index] = el}
+                    className="grid-canvas"
+                  />
+                  {droppedItems.includes(index) && <div className="cell-check">✓</div>}
+                  {/* AI 시점일 때 잘못된 라벨 표시 */}
+                  {aiViewMode && noiseEnabled && aiLabels[index] && (
+                    <div className="ai-label">{aiLabels[index]}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* 드롭 영역 */}
+            <div id="demo-drop-zone" className="drop-zone">
+              {droppedItems.length === 0 ? (
+                <span className="drop-hint">여기에 드래그하세요</span>
+              ) : (
+                droppedItems.map((idx, i) => (
+                  <div key={i} className="dropped-item">
+                    {currentQuestion.images[idx]}
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="phase-controls">
+              <span className="selection-count">선택: {droppedItems.length} / {currentQuestion.answerCount}</span>
+              <button className="reset-btn" onClick={() => setDroppedItems([])}>초기화</button>
+            </div>
+          </div>
+        )}
+
+        {/* Success */}
+        {phase === 'success' && (
+          <div className="captcha-success">
+            <div className="success-icon">✓</div>
+            <h3>인증 완료!</h3>
+            <p>사람으로 확인되었습니다</p>
+            <div className="success-session">
+              session_id: <code>tc_demo_{Math.random().toString(36).substr(2, 8)}</code>
+            </div>
+            <button className="captcha-start-btn" style={{ marginTop: '1rem' }} onClick={() => {
+              onComplete?.();
+              setTimeout(onClose, 300);
+            }}>
+              완료
+            </button>
+          </div>
+        )}
+
+        {/* 드래그 중인 아이템 */}
+        {draggedItem !== null && phase === 'phaseB' && (
+          <div
+            className="dragged-item"
+            style={{
+              left: dragPosition.x - 30,
+              top: dragPosition.y - 30,
+            }}
+          >
+            {currentQuestion.images[draggedItem]}
+          </div>
+        )}
+
+        {/* Progress */}
+        <div className="demo-progress">
+          <div className={`progress-dot ${phase === 'intro' ? 'active' : ''}`} />
+          <div className={`progress-dot ${phase === 'phaseA' ? 'active' : ''}`} />
+          <div className={`progress-dot ${phase === 'phaseB' ? 'active' : ''}`} />
+          <div className={`progress-dot ${phase === 'success' ? 'active' : ''}`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// 실제 SDK 결과 표시 컴포넌트
+// ============================================
 function CaptchaResult({ sessionId, error, onClose }) {
   if (!sessionId && !error) return null;
   
@@ -36,19 +669,59 @@ function CaptchaResult({ sessionId, error, onClose }) {
   );
 }
 
+// ============================================
+// 데모 선택 모달
+// ============================================
+function DemoSelector({ onSelectReal, onSelectDemo, onClose }) {
+  return (
+    <div className="captcha-overlay" onClick={onClose}>
+      <div className="captcha-modal selector-modal" onClick={e => e.stopPropagation()}>
+        <button className="captcha-close" onClick={onClose}>×</button>
+        
+        <div className="captcha-logo">T:CURITY</div>
+        <h3 style={{ marginBottom: '0.5rem' }}>체험 모드 선택</h3>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          원하는 체험 방식을 선택하세요
+        </p>
+        
+        <div className="selector-options">
+          <button className="selector-option" onClick={onSelectReal}>
+            <div className="option-icon">🔐</div>
+            <div className="option-content">
+              <strong>실제 인증</strong>
+              <span>실제 T:CURITY SDK로 인증</span>
+            </div>
+          </button>
+          
+          <button className="selector-option demo-option" onClick={onSelectDemo}>
+            <div className="option-icon">🎮</div>
+            <div className="option-content">
+              <strong>데모 체험</strong>
+              <span>노이즈 효과 테스트 포함</span>
+            </div>
+            <div className="option-badge">NEW</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // 실제 SDK 호출 함수
+// ============================================
 async function runTCurityCaptcha(clientId = "cust_alpha") {
-  // SDK 로드 확인
   if (typeof window.TCuritySDK === 'undefined') {
     throw new Error('T:CURITY SDK가 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
   }
-  
-  // SDK captcha 호출 - SDK가 자동으로 모달 UI를 띄움
   const sessionId = await window.TCuritySDK.captcha(clientId);
   return sessionId;
 }
 
-// Animated Background
+// ============================================
+// 기존 컴포넌트들
+// ============================================
+
 function AnimatedBackground() {
   return (
     <div className="animated-bg">
@@ -64,7 +737,6 @@ function AnimatedBackground() {
   );
 }
 
-// Theme Toggle Button
 function ThemeToggle({ isDark, onToggle }) {
   return (
     <button className="theme-toggle" onClick={onToggle} aria-label="테마 변경">
@@ -82,8 +754,7 @@ function ThemeToggle({ isDark, onToggle }) {
   );
 }
 
-// Navigation
-function Nav({ isDark, onThemeToggle }) {
+function Nav({ isDark, onThemeToggle, onPricingClick }) {
   return (
     <nav className="nav">
       <div className="nav-container">
@@ -96,6 +767,7 @@ function Nav({ isDark, onThemeToggle }) {
           <a href="#features">기능</a>
           <a href="#demo">데모</a>
           <a href="#install">설치</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick(); }}>가격</a>
           <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
           <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
         </div>
@@ -104,13 +776,11 @@ function Nav({ isDark, onThemeToggle }) {
   );
 }
 
-// Hero Section
 function Hero({ onDemoClick }) {
   return (
     <section className="hero">
       <AnimatedBackground />
       <div className="hero-content">
-        <div className="hero-badge">🛡️ Next-Gen CAPTCHA Solution</div>
         <h1 className="hero-title">
           <span className="title-line">봇은 막고,</span>
           <span className="title-line highlight">사람은 통과</span>
@@ -151,7 +821,6 @@ function Hero({ onDemoClick }) {
   );
 }
 
-// Features Section
 function Features() {
   const features = [
     {
@@ -206,7 +875,6 @@ function Features() {
   );
 }
 
-// Demo Section
 function DemoSection({ onDemoClick }) {
   return (
     <section id="demo" className="demo-section">
@@ -283,7 +951,6 @@ function DemoSection({ onDemoClick }) {
   );
 }
 
-// Install Section
 function InstallSection() {
   const [copied, setCopied] = useState(false);
   
@@ -386,7 +1053,6 @@ function InstallSection() {
   );
 }
 
-// Footer
 function Footer() {
   return (
     <footer className="footer">
@@ -408,25 +1074,39 @@ function Footer() {
   );
 }
 
+// ============================================
 // Main App
+// ============================================
 function App() {
+  const [showSelector, setShowSelector] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
+  const [showNoiseTest, setShowNoiseTest] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
   const [showResult, setShowResult] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
 
-  const handleDemoClick = async () => {
+  const handleDemoClick = () => {
+    setShowSelector(true);
+  };
+
+  const handleSelectReal = async () => {
+    setShowSelector(false);
     try {
-      // 실제 SDK 호출 - SDK가 자동으로 캡챠 UI 모달을 띄움
       const sessionId = await runTCurityCaptcha("cust_alpha");
       setCaptchaResult({ sessionId, error: null });
       setShowResult(true);
     } catch (err) {
-      // 사용자가 취소하거나 에러 발생시
       if (err.message !== 'CAPTCHA_CANCELLED') {
         setCaptchaResult({ sessionId: null, error: err.message });
         setShowResult(true);
       }
     }
+  };
+
+  const handleSelectDemo = () => {
+    setShowSelector(false);
+    setShowDemo(true);
   };
 
   const handleCloseResult = () => {
@@ -438,14 +1118,80 @@ function App() {
     setIsDarkTheme(!isDarkTheme);
   };
 
+  // Pricing 페이지 표시
+  if (showPricing) {
+    return (
+      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
+        <nav className="nav">
+          <div className="nav-container">
+            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>
+              <span className="logo-t">T</span>
+              <span className="logo-colon">:</span>
+              <span className="logo-curity">CURITY</span>
+            </a>
+            <div className="nav-links">
+              <a href="#" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>← 홈으로</a>
+              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
+            </div>
+          </div>
+        </nav>
+        <PricingPage onBack={() => setShowPricing(false)} />
+      </div>
+    );
+  }
+
+  // NoiseTest 페이지 표시
+  if (showNoiseTest) {
+    return (
+      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
+        <nav className="nav">
+          <div className="nav-container">
+            <button 
+              className="back-btn"
+              onClick={() => setShowNoiseTest(false)}
+            >
+              ← 돌아가기
+            </button>
+            <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
+          </div>
+        </nav>
+        <NoiseTest />
+      </div>
+    );
+  }
+
   return (
     <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-      <Nav isDark={isDarkTheme} onThemeToggle={handleThemeToggle} />
+      <Nav isDark={isDarkTheme} onThemeToggle={handleThemeToggle} onPricingClick={() => setShowPricing(true)} />
       <Hero onDemoClick={handleDemoClick} />
       <Features />
       <DemoSection onDemoClick={handleDemoClick} />
       <InstallSection />
       <Footer />
+      
+      {/* 노이즈 테스트 플로팅 버튼 */}
+      <button 
+        className="noise-test-fab"
+        onClick={() => setShowNoiseTest(true)}
+        title="AI 노이즈 테스트"
+      >
+        🔬
+      </button>
+      
+      {showSelector && (
+        <DemoSelector 
+          onSelectReal={handleSelectReal}
+          onSelectDemo={handleSelectDemo}
+          onClose={() => setShowSelector(false)}
+        />
+      )}
+      
+      {showDemo && (
+        <DemoCaptcha 
+          onClose={() => setShowDemo(false)}
+          onComplete={() => setShowDemo(false)}
+        />
+      )}
       
       {showResult && (
         <CaptchaResult 
