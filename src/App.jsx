@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import './App.css';
 import NoiseTest from './NoiseTest';
 import PricingPage from './PricingPage';
+import AdminDashboard from './AdminDashboard';
 
 // ============================================
 // 데모용 CAPTCHA 컴포넌트 (Mock)
@@ -754,7 +755,7 @@ function ThemeToggle({ isDark, onToggle }) {
   );
 }
 
-function Nav({ isDark, onThemeToggle, onPricingClick }) {
+function Nav({ isDark, onThemeToggle, onPricingClick, onDashboardClick }) {
   return (
     <nav className="nav">
       <div className="nav-container">
@@ -768,6 +769,7 @@ function Nav({ isDark, onThemeToggle, onPricingClick }) {
           <a href="#demo">데모</a>
           <a href="#install">설치</a>
           <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick(); }}>가격</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick(); }} className="nav-dashboard">대시보드</a>
           <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
           <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
         </div>
@@ -1082,6 +1084,7 @@ function App() {
   const [showDemo, setShowDemo] = useState(false);
   const [showNoiseTest, setShowNoiseTest] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
   const [showResult, setShowResult] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
@@ -1117,6 +1120,28 @@ function App() {
   const handleThemeToggle = () => {
     setIsDarkTheme(!isDarkTheme);
   };
+
+  // Admin Dashboard 표시
+  if (showDashboard) {
+    return (
+      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
+        <nav className="nav">
+          <div className="nav-container">
+            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>
+              <span className="logo-t">T</span>
+              <span className="logo-colon">:</span>
+              <span className="logo-curity">CURITY</span>
+            </a>
+            <div className="nav-links">
+              <a href="#" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>← 홈으로</a>
+              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
+            </div>
+          </div>
+        </nav>
+        <AdminDashboard onBack={() => setShowDashboard(false)} />
+      </div>
+    );
+  }
 
   // Pricing 페이지 표시
   if (showPricing) {
@@ -1162,7 +1187,12 @@ function App() {
 
   return (
     <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-      <Nav isDark={isDarkTheme} onThemeToggle={handleThemeToggle} onPricingClick={() => setShowPricing(true)} />
+      <Nav 
+        isDark={isDarkTheme} 
+        onThemeToggle={handleThemeToggle} 
+        onPricingClick={() => setShowPricing(true)} 
+        onDashboardClick={() => setShowDashboard(true)}
+      />
       <Hero onDemoClick={handleDemoClick} />
       <Features />
       <DemoSection onDemoClick={handleDemoClick} />
