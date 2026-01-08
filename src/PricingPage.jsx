@@ -1,5 +1,10 @@
 import { useState } from 'react';
 
+// 가격 근거:
+// - reCAPTCHA: 무료 10K, $8/월(100K), $1/1K
+// - hCaptcha: 무료 100K, $99/월(100K), $0.99/1K
+// - T:CURITY: AI 2-Phase라 프리미엄 가능하나, 시장 진입 위해 hCaptcha 수준으로 책정
+
 const plans = [
   {
     id: 'starter',
@@ -7,10 +12,10 @@ const plans = [
     description: '소규모 서비스 & 테스트용',
     monthlyPrice: 0,
     annualPrice: 0,
-    requests: '5,000',
+    requests: '10,000',
     concurrent: '50명',
     features: [
-      '월 5,000 요청',
+      '월 10,000 요청',
       '동시 접속 50명',
       '기본 봇 탐지 (AI 기반)',
       '기본 대시보드',
@@ -27,10 +32,11 @@ const plans = [
     id: 'growth',
     name: 'Growth',
     description: '성장하는 서비스에 적합',
-    monthlyPrice: 99000,
-    annualPrice: 79000,
+    monthlyPrice: 49000,  // ~$35, hCaptcha $99 대비 저렴
+    annualPrice: 39000,
     requests: '100,000',
     concurrent: '500명',
+    extraRate: '₩50/1,000건',  // ~$0.035, reCAPTCHA $1 대비 저렴
     features: [
       '월 100,000 요청',
       '동시 접속 500명',
@@ -41,6 +47,7 @@ const plans = [
       '이메일 지원 (24시간 내)',
       '일간 리포트',
       '워터마크 제거',
+      '초과 시 ₩50/1,000건',
     ],
     limitations: [],
     cta: '시작하기',
@@ -50,10 +57,11 @@ const plans = [
     id: 'business',
     name: 'Business',
     description: '티켓/예약 서비스 최적화',
-    monthlyPrice: 290000,
-    annualPrice: 232000,
+    monthlyPrice: 149000,  // ~$110, hCaptcha Pro와 비슷
+    annualPrice: 119000,
     requests: '500,000',
     concurrent: '2,000명',
+    extraRate: '₩30/1,000건',
     features: [
       '월 500,000 요청',
       '동시 접속 2,000명',
@@ -66,6 +74,7 @@ const plans = [
       '우선 지원 (4시간 내)',
       '주간/월간 리포트',
       'SLA 99.5%',
+      '초과 시 ₩30/1,000건',
     ],
     limitations: [],
     cta: '가장 인기',
@@ -100,12 +109,16 @@ const plans = [
 
 const faqs = [
   {
+    q: '다른 CAPTCHA 서비스와 비교하면 어떤가요?',
+    a: 'reCAPTCHA Enterprise는 $1/1,000건, hCaptcha는 $0.99/1,000건입니다. T:CURITY는 ₩30~50/1,000건(약 $0.02~0.04)으로 더 저렴하면서 AI 기반 2-Phase 인증을 제공합니다.',
+  },
+  {
     q: '오토스케일링이 뭔가요?',
     a: '트래픽이 증가하면 자동으로 서버가 늘어나고, 줄어들면 다시 축소됩니다. 오픈런 때만 비용이 늘어나고, 평소엔 기본 비용만 발생합니다.',
   },
   {
     q: '오픈런 때 갑자기 트래픽이 몰려도 괜찮나요?',
-    a: 'Business 플랜은 최대 5,000명, Enterprise는 무제한으로 자동 확장됩니다. 부하 테스트 결과 1,000명까지 실패율 0%가 검증되었고, 오토스케일링으로 그 이상도 대응 가능합니다.',
+    a: 'Business 플랜은 최대 5,000명, Enterprise는 무제한으로 자동 확장됩니다. 부하 테스트 결과 1,000명까지 실패율 0%가 검증되었습니다.',
   },
   {
     q: '동시 접속 한도를 초과하면 어떻게 되나요?',
@@ -116,12 +129,8 @@ const faqs = [
     a: '실제 부하 테스트 결과입니다. 동시 100명 접속 기준 평균 1.3초가 측정되었습니다.',
   },
   {
-    q: '요청 한도 초과 시 추가 비용이 있나요?',
-    a: '초과분에 대해 1,000 요청당 ₩100이 과금됩니다. Enterprise는 무제한입니다.',
-  },
-  {
     q: '연간 결제 혜택이 있나요?',
-    a: '연간 결제 시 20% 할인되며, 오픈런 대응 컨설팅 1회가 무료 제공됩니다.',
+    a: '연간 결제 시 20% 할인됩니다.',
   },
 ];
 
@@ -132,9 +141,10 @@ const formatPrice = (price) => {
 };
 
 const comparisonData = [
-  ['월 요청 수', '5,000', '100,000', '500,000', '무제한'],
+  ['월 요청 수', '10,000', '100,000', '500,000', '무제한'],
   ['기본 동시 접속', '50명', '500명', '2,000명', '무제한'],
   ['오토스케일 최대', '—', '1,000명', '5,000명', '무제한'],
+  ['초과 요금', '—', '₩50/1K', '₩30/1K', '—'],
   ['평균 응답 시간', '1.3초', '1.3초', '1.5초 이내', '1초 이내'],
   ['봇 탐지', '기본', '프리미엄', '프리미엄+', '프리미엄+'],
   ['대시보드', '기본', '고급', '실시간', '전용'],
@@ -143,7 +153,6 @@ const comparisonData = [
   ['Slack/웹훅', '—', '—', '✓', '✓'],
   ['전담 지원', '—', '—', '—', '✓'],
   ['SLA', '—', '—', '99.5%', '99.9%'],
-  ['오픈런 대응', '—', '—', '자동 확장', '사전 예열'],
 ];
 
 function PricingPage({ onBack }) {
@@ -153,8 +162,8 @@ function PricingPage({ onBack }) {
     <div className="pricing-page">
       {/* Hero */}
       <section className="pricing-hero">
-        <h1>오픈런도 견디는 CAPTCHA</h1>
-        <p>오토스케일링으로 트래픽 걱정 없이, 사용한 만큼만 지불하세요</p>
+        <h1>reCAPTCHA 대비 90% 저렴한 가격</h1>
+        <p>AI 기반 2-Phase 인증을 합리적인 가격에</p>
 
         {/* Billing Toggle */}
         <div className="billing-toggle">
@@ -219,6 +228,44 @@ function PricingPage({ onBack }) {
         ))}
       </section>
 
+      {/* Price Comparison */}
+      <section className="pricing-comparison competitor">
+        <h2>경쟁사 가격 비교</h2>
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>서비스</th>
+                <th>무료 티어</th>
+                <th>유료 시작</th>
+                <th>초과 요금</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>reCAPTCHA</td>
+                <td>10,000/월</td>
+                <td>$8/월</td>
+                <td>$1/1,000건</td>
+              </tr>
+              <tr>
+                <td>hCaptcha</td>
+                <td>100,000/월</td>
+                <td>$99/월</td>
+                <td>$0.99/1,000건</td>
+              </tr>
+              <tr className="highlight">
+                <td><strong>T:CURITY</strong></td>
+                <td><strong>10,000/월</strong></td>
+                <td><strong>₩39,000/월</strong></td>
+                <td><strong>₩30~50/1,000건</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="comparison-note">* T:CURITY 초과 요금은 경쟁사 대비 약 97% 저렴</p>
+      </section>
+
       {/* Feature Comparison */}
       <section className="pricing-comparison">
         <h2>상세 기능 비교</h2>
@@ -270,8 +317,8 @@ function PricingPage({ onBack }) {
           <span className="stat-label">평균 응답 시간</span>
         </div>
         <div className="stat">
-          <span className="stat-value">∞</span>
-          <span className="stat-label">오토스케일 확장성</span>
+          <span className="stat-value">97%</span>
+          <span className="stat-label">비용 절감</span>
         </div>
       </section>
 
