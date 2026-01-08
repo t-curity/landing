@@ -207,6 +207,35 @@ body {
   color: var(--color-primary);
 }
 
+/* 서브페이지용 간단한 nav (항상 보임) */
+.nav-simple {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-simple .back-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-simple .back-link:hover {
+  color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .nav-simple {
+    gap: 1rem;
+  }
+  
+  .nav-simple .back-link {
+    font-size: 0.85rem;
+  }
+}
+
 /* 햄버거 메뉴 버튼 */
 .nav-hamburger {
   display: none !important;

@@ -1256,8 +1256,8 @@ function App() {
               <span className="logo-colon">:</span>
               <span className="logo-curity">CURITY</span>
             </a>
-            <div className="nav-links">
-              <a href="#" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>← 홈으로</a>
+            <div className="nav-simple">
+              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>← 홈으로</a>
               <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
             </div>
           </div>
@@ -1278,8 +1278,8 @@ function App() {
               <span className="logo-colon">:</span>
               <span className="logo-curity">CURITY</span>
             </a>
-            <div className="nav-links">
-              <a href="#" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>← 홈으로</a>
+            <div className="nav-simple">
+              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>← 홈으로</a>
               <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
             </div>
           </div>
@@ -1295,13 +1295,15 @@ function App() {
       <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
         <nav className="nav">
           <div className="nav-container">
-            <button 
-              className="back-btn"
-              onClick={() => setShowNoiseTest(false)}
-            >
-              ← 돌아가기
-            </button>
-            <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
+            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowNoiseTest(false); }}>
+              <span className="logo-t">T</span>
+              <span className="logo-colon">:</span>
+              <span className="logo-curity">CURITY</span>
+            </a>
+            <div className="nav-simple">
+              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowNoiseTest(false); }}>← 홈으로</a>
+              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
+            </div>
           </div>
         </nav>
         <NoiseTest />
