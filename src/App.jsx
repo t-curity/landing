@@ -756,48 +756,120 @@ function ThemeToggle({ isDark, onToggle }) {
 }
 
 function Nav({ isDark, onThemeToggle, onPricingClick, onDashboardClick }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavClick = (callback) => {
-    setMobileMenuOpen(false);
+  const closeMenu = (callback) => {
+    setIsOpen(false);
     if (callback) callback();
   };
 
-  return (
-    <nav className="nav">
-      <div className="nav-container">
-        <a href="#" className="nav-logo">
-          <span className="logo-t">T</span>
-          <span className="logo-colon">:</span>
-          <span className="logo-curity">CURITY</span>
-        </a>
-        
-        {/* 모바일 햄버거 버튼 */}
-        <button 
-          className={`nav-hamburger ${mobileMenuOpen ? 'open' : ''}`}
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="메뉴"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+  const menuStyle = {
+    position: 'fixed',
+    top: 0,
+    right: isOpen ? 0 : '-100%',
+    width: '280px',
+    height: '100vh',
+    background: 'var(--color-bg)',
+    borderLeft: '1px solid var(--color-border)',
+    padding: '5rem 2rem 2rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0',
+    transition: 'right 0.3s ease',
+    zIndex: 200,
+  };
 
-        {/* 네비게이션 링크 */}
-        <div className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
-          <a href="#features" onClick={() => handleNavClick()}>기능</a>
-          <a href="#demo" onClick={() => handleNavClick()}>데모</a>
-          <a href="#install" onClick={() => handleNavClick()}>설치</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); handleNavClick(onPricingClick); }}>가격</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); handleNavClick(onDashboardClick); }} className="nav-dashboard">대시보드</a>
-          <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer" onClick={() => handleNavClick()}>GitHub</a>
+  const overlayStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    zIndex: 150,
+    display: isOpen ? 'block' : 'none',
+  };
+
+  const linkStyle = {
+    padding: '1rem 0',
+    borderBottom: '1px solid var(--color-border)',
+    color: 'var(--color-text-muted)',
+    textDecoration: 'none',
+    fontSize: '1rem',
+  };
+
+  return (
+    <>
+      <nav className="nav">
+        <div className="nav-container">
+          <a href="#" className="nav-logo">
+            <span className="logo-t">T</span>
+            <span className="logo-colon">:</span>
+            <span className="logo-curity">CURITY</span>
+          </a>
+          
+          {/* 데스크톱 메뉴 */}
+          <div className="nav-links nav-desktop">
+            <a href="#features">기능</a>
+            <a href="#demo">데모</a>
+            <a href="#install">설치</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick(); }}>가격</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick(); }}>대시보드</a>
+            <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
+          </div>
+
+          {/* 햄버거 버튼 */}
+          <button 
+            className="nav-hamburger"
+            onClick={() => setIsOpen(!isOpen)}
+            style={{ display: 'none' }}
+          >
+            <span style={{ 
+              display: 'block', 
+              width: '24px', 
+              height: '2px', 
+              background: 'var(--color-text)',
+              transition: 'all 0.3s',
+              transform: isOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
+            }}></span>
+            <span style={{ 
+              display: 'block', 
+              width: '24px', 
+              height: '2px', 
+              background: 'var(--color-text)',
+              margin: '5px 0',
+              opacity: isOpen ? 0 : 1,
+              transition: 'all 0.3s'
+            }}></span>
+            <span style={{ 
+              display: 'block', 
+              width: '24px', 
+              height: '2px', 
+              background: 'var(--color-text)',
+              transition: 'all 0.3s',
+              transform: isOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
+            }}></span>
+          </button>
+        </div>
+      </nav>
+
+      {/* 오버레이 */}
+      <div style={overlayStyle} onClick={() => setIsOpen(false)} />
+      
+      {/* 모바일 메뉴 */}
+      <div className="nav-mobile-menu" style={menuStyle}>
+        <a href="#features" style={linkStyle} onClick={() => closeMenu()}>기능</a>
+        <a href="#demo" style={linkStyle} onClick={() => closeMenu()}>데모</a>
+        <a href="#install" style={linkStyle} onClick={() => closeMenu()}>설치</a>
+        <a href="#" style={linkStyle} onClick={(e) => { e.preventDefault(); closeMenu(onPricingClick); }}>가격</a>
+        <a href="#" style={linkStyle} onClick={(e) => { e.preventDefault(); closeMenu(onDashboardClick); }}>대시보드</a>
+        <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer" style={linkStyle} onClick={() => closeMenu()}>GitHub</a>
+        <div style={{ marginTop: '1rem' }}>
           <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
         </div>
-
-        {/* 모바일 메뉴 오버레이 */}
-        {mobileMenuOpen && <div className="nav-overlay" onClick={() => setMobileMenuOpen(false)} />}
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -1078,21 +1150,50 @@ function InstallSection() {
   );
 }
 
-function Footer() {
+function Footer({ onPricingClick, onDashboardClick }) {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <div className="footer-brand">
-          <span className="footer-logo">T:CURITY</span>
-          <p>차세대 CAPTCHA 보안 솔루션</p>
+        <div className="footer-top">
+          <div className="footer-brand">
+            <span className="footer-logo">
+              <span style={{color: 'var(--color-primary)'}}>T</span>
+              <span style={{color: 'var(--color-primary)'}}>:</span>
+              CURITY
+            </span>
+            <p>AI 시대의 차세대 CAPTCHA 보안 솔루션</p>
+          </div>
+          
+          <div className="footer-nav">
+            <div className="footer-col">
+              <h4>제품</h4>
+              <a href="#features">기능</a>
+              <a href="#demo">데모</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick?.(); }}>가격</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick?.(); }}>대시보드</a>
+            </div>
+            <div className="footer-col">
+              <h4>개발자</h4>
+              <a href="#install">설치 가이드</a>
+              <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
+              <a href="https://github.com/tcurity/docs" target="_blank" rel="noopener noreferrer">API 문서</a>
+            </div>
+            <div className="footer-col">
+              <h4>팀</h4>
+              <a href="#">T:CURITOR 소개</a>
+              <a href="mailto:contact@tcurity.com">문의하기</a>
+            </div>
+          </div>
         </div>
-        <div className="footer-links">
-          <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
-          <a href="#features">기능</a>
-          <a href="#install">설치</a>
-        </div>
-        <div className="footer-copyright">
-          © 2025 T:CURITY Project by T:CURITOR
+        
+        <div className="footer-bottom">
+          <div className="footer-copyright">
+            © 2025 T:CURITY. Built by T:CURITOR Team.
+          </div>
+          <div className="footer-legal">
+            <a href="#">이용약관</a>
+            <a href="#">개인정보처리방침</a>
+          </div>
         </div>
       </div>
     </footer>
@@ -1220,7 +1321,7 @@ function App() {
       <Features />
       <DemoSection onDemoClick={handleDemoClick} />
       <InstallSection />
-      <Footer />
+      <Footer onPricingClick={() => setShowPricing(true)} onDashboardClick={() => setShowDashboard(true)} />
       
       {/* 노이즈 테스트 플로팅 버튼 */}
       <button 
