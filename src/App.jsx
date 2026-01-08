@@ -756,6 +756,13 @@ function ThemeToggle({ isDark, onToggle }) {
 }
 
 function Nav({ isDark, onThemeToggle, onPricingClick, onDashboardClick }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleNavClick = (callback) => {
+    setMobileMenuOpen(false);
+    if (callback) callback();
+  };
+
   return (
     <nav className="nav">
       <div className="nav-container">
@@ -764,15 +771,31 @@ function Nav({ isDark, onThemeToggle, onPricingClick, onDashboardClick }) {
           <span className="logo-colon">:</span>
           <span className="logo-curity">CURITY</span>
         </a>
-        <div className="nav-links">
-          <a href="#features">기능</a>
-          <a href="#demo">데모</a>
-          <a href="#install">설치</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick(); }}>가격</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick(); }} className="nav-dashboard">대시보드</a>
-          <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
+        
+        {/* 모바일 햄버거 버튼 */}
+        <button 
+          className={`nav-hamburger ${mobileMenuOpen ? 'open' : ''}`}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="메뉴"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        {/* 네비게이션 링크 */}
+        <div className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
+          <a href="#features" onClick={() => handleNavClick()}>기능</a>
+          <a href="#demo" onClick={() => handleNavClick()}>데모</a>
+          <a href="#install" onClick={() => handleNavClick()}>설치</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); handleNavClick(onPricingClick); }}>가격</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); handleNavClick(onDashboardClick); }} className="nav-dashboard">대시보드</a>
+          <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer" onClick={() => handleNavClick()}>GitHub</a>
           <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
         </div>
+
+        {/* 모바일 메뉴 오버레이 */}
+        {mobileMenuOpen && <div className="nav-overlay" onClick={() => setMobileMenuOpen(false)} />}
       </div>
     </nav>
   );
