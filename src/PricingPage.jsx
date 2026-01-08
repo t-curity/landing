@@ -1,9 +1,13 @@
 import { useState } from 'react';
 
 // 가격 근거:
-// - reCAPTCHA: 무료 10K, $8/월(100K), $1/1K
-// - hCaptcha: 무료 100K, $99/월(100K), $0.99/1K
-// - T:CURITY: AI 2-Phase라 프리미엄 가능하나, 시장 진입 위해 hCaptcha 수준으로 책정
+// - 타 서비스 A: 무료 10K, $8/월(100K), $1/1K (글로벌 검색 엔진 기업)
+// - 타 서비스 B: 무료 100K, $99/월(100K), $0.99/1K (프라이버시 중심 서비스)
+// - T:CURITY: AI 2-Phase 제공하면서 초과 요금 대폭 저렴하게 책정
+//
+// CSS 스타일 힌트:
+// .competitor-col { opacity: 0.5; } /* 타 서비스 컬럼 투명도 높임 */
+// .tcurity-col { font-weight: 600; color: var(--primary); } /* T:CURITY 강조 */
 
 const plans = [
   {
@@ -109,8 +113,8 @@ const plans = [
 
 const faqs = [
   {
-    q: '다른 CAPTCHA 서비스와 비교하면 어떤가요?',
-    a: 'reCAPTCHA Enterprise는 $1/1,000건, hCaptcha는 $0.99/1,000건입니다. T:CURITY는 ₩30~50/1,000건(약 $0.02~0.04)으로 더 저렴하면서 AI 기반 2-Phase 인증을 제공합니다.',
+    q: '요청 수는 어떻게 계산되나요?',
+    a: 'CAPTCHA 위젯이 로드될 때마다 1회 요청으로 계산됩니다. 사용자가 인증을 완료하지 않아도 요청으로 카운트됩니다.',
   },
   {
     q: '오토스케일링이 뭔가요?',
@@ -162,8 +166,8 @@ function PricingPage({ onBack }) {
     <div className="pricing-page">
       {/* Hero */}
       <section className="pricing-hero">
-        <h1>reCAPTCHA 대비 90% 저렴한 가격</h1>
-        <p>AI 기반 2-Phase 인증을 합리적인 가격에</p>
+        <h1>심플하고 투명한 가격 정책</h1>
+        <p>사용한 만큼만 지불하세요</p>
 
         {/* Billing Toggle */}
         <div className="billing-toggle">
@@ -230,7 +234,7 @@ function PricingPage({ onBack }) {
 
       {/* Price Comparison */}
       <section className="pricing-comparison competitor">
-        <h2>경쟁사 가격 비교</h2>
+        <h2>가격 비교</h2>
         <div className="comparison-table-wrapper">
           <table className="comparison-table">
             <thead>
@@ -242,19 +246,19 @@ function PricingPage({ onBack }) {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>reCAPTCHA</td>
-                <td>10,000/월</td>
-                <td>$8/월</td>
-                <td>$1/1,000건</td>
+              <tr className="competitor-row">
+                <td className="blurred">G사 CAPTCHA</td>
+                <td className="blurred">10,000/월</td>
+                <td className="blurred">$8/월</td>
+                <td className="blurred">$1/1,000건</td>
               </tr>
-              <tr>
-                <td>hCaptcha</td>
-                <td>100,000/월</td>
-                <td>$99/월</td>
-                <td>$0.99/1,000건</td>
+              <tr className="competitor-row">
+                <td className="blurred">H사 CAPTCHA</td>
+                <td className="blurred">100,000/월</td>
+                <td className="blurred">$99/월</td>
+                <td className="blurred">$0.99/1,000건</td>
               </tr>
-              <tr className="highlight">
+              <tr className="highlight-row">
                 <td><strong>T:CURITY</strong></td>
                 <td><strong>10,000/월</strong></td>
                 <td><strong>₩39,000/월</strong></td>
@@ -263,7 +267,56 @@ function PricingPage({ onBack }) {
             </tbody>
           </table>
         </div>
-        <p className="comparison-note">* T:CURITY 초과 요금은 경쟁사 대비 약 97% 저렴</p>
+      </section>
+
+      {/* Price Comparison */}
+      <section className="pricing-comparison competitor">
+        <h2>가격 비교</h2>
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th className="competitor-col">타 서비스 A</th>
+                <th className="competitor-col">타 서비스 B</th>
+                <th className="tcurity-col">T:CURITY</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>무료 티어</td>
+                <td className="competitor-col">10,000/월</td>
+                <td className="competitor-col">100,000/월</td>
+                <td className="tcurity-col">10,000/월</td>
+              </tr>
+              <tr>
+                <td>유료 시작가</td>
+                <td className="competitor-col">~₩11,000/월</td>
+                <td className="competitor-col">~₩140,000/월</td>
+                <td className="tcurity-col">₩39,000/월</td>
+              </tr>
+              <tr>
+                <td>초과 요금</td>
+                <td className="competitor-col">~₩1,400/1,000건</td>
+                <td className="competitor-col">~₩1,400/1,000건</td>
+                <td className="tcurity-col">₩30~50/1,000건</td>
+              </tr>
+              <tr>
+                <td>AI 봇 탐지</td>
+                <td className="competitor-col">유료 전용</td>
+                <td className="competitor-col">유료 전용</td>
+                <td className="tcurity-col">전 플랜 제공</td>
+              </tr>
+              <tr>
+                <td>2-Phase 인증</td>
+                <td className="competitor-col">미지원</td>
+                <td className="competitor-col">미지원</td>
+                <td className="tcurity-col">기본 제공</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="comparison-note">* 타 서비스 가격은 2024년 기준 환율 적용</p>
       </section>
 
       {/* Feature Comparison */}
@@ -317,8 +370,8 @@ function PricingPage({ onBack }) {
           <span className="stat-label">평균 응답 시간</span>
         </div>
         <div className="stat">
-          <span className="stat-value">97%</span>
-          <span className="stat-label">비용 절감</span>
+          <span className="stat-value">2-Phase</span>
+          <span className="stat-label">AI 기반 인증</span>
         </div>
       </section>
 

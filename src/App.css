@@ -3266,6 +3266,9 @@ code {
   background: white;
 }
 
+.competitor-col { opacity: 0.5; }  /* 타 서비스 흐리게 */
+.tcurity-col { font-weight: 600; color: var(--primary); }  /* T:CURITY 강조 */
+
 /* Responsive */
 @media (max-width: 1024px) {
   .metrics {
