@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
-import NoiseTest from './NoiseTest';
 import PricingPage from './PricingPage';
 import AdminDashboard from './AdminDashboard';
 
@@ -30,139 +29,9 @@ const DEMO_QUESTIONS = [
   },
 ];
 
-// 노이즈 효과 함수들
-const noiseEffects = {
-  adversarial: (ctx, width, height, intensity = 25) => {
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] > 0) {
-        data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
-        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
-        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-  },
-  stripes: (ctx, width, height, opacity = 0.2) => {
-    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-    ctx.lineWidth = 1.5;
-    for (let i = -height; i < width + height; i += 5) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + height, height);
-      ctx.stroke();
-    }
-  },
-  occlusion: (ctx, width, height, coverage = 0.15) => {
-    const blockSize = 10;
-    const blocks = Math.floor((width * height * coverage) / (blockSize * blockSize));
-    for (let i = 0; i < blocks; i++) {
-      ctx.fillStyle = ['#000', '#333', '#222'][Math.floor(Math.random() * 3)];
-      ctx.fillRect(
-        Math.random() * (width - blockSize),
-        Math.random() * (height - blockSize),
-        blockSize, blockSize
-      );
-    }
-  },
-};
-
-// 동적 노이즈 생성 함수 (사용 안 함)
-const generateDynamicNoise = (ctx, width, height, seed = 0) => {
-  return ctx.createImageData(width, height);
-};
-
-// Adversarial Perturbation만 적용하는 함수
-const compositeImageWithNoise = (ctx, emoji, width, height, noiseOpacity = 0.7, seed = 0) => {
-  // 이미지 그리기
-  ctx.fillStyle = '#1a1a3e';
-  ctx.fillRect(0, 0, width, height);
-  ctx.font = `${width * 0.5}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, width / 2, height / 2);
-  
-  // Adversarial Perturbation 적용
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-  const intensity = 25; // 노이즈 강도
-  
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] > 0) {
-      data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
-    }
-  }
-  
-  ctx.putImageData(imageData, 0, 0);
-};
-
-// AI가 "잘못 인식"하는 라벨들
-const AI_WRONG_LABELS = {
-  '🐕': ['고양이?', '늑대?', '여우?', '곰?', '???'],
-  '🚗': ['트럭?', '버스?', '물체?', '???'],
-  '🍕': ['파이?', '원형?', '???'],
-  '🎸': ['바이올린?', '물체?', '???'],
-  '🏠': ['건물?', '상자?', '???'],
-  '⚽': ['원?', '공?', '???'],
-  '🎨': ['물체?', '???'],
-  '🍎': ['공?', '토마토?', '체리?', '???'],
-  '🚀': ['비행기?', '미사일?', '???'],
-  '🍊': ['공?', '레몬?', '???'],
-  '💎': ['삼각형?', '물체?', '???'],
-  '🍇': ['물체?', '???'],
-  '🔥': ['꽃?', '물체?', '???'],
-  '⭐': ['물체?', '???'],
-  '🍌': ['물체?', '???'],
-  '🌙': ['원?', 'C자?', '???'],
-  '🌸': ['물체?', '분홍?', '???'],
-  '✈️': ['새?', '로켓?', '???'],
-  '🎵': ['물체?', '???'],
-  '🚢': ['건물?', '상자?', '???'],
-  '🍰': ['상자?', '삼각형?', '???'],
-  '🚲': ['물체?', '???'],
-  '📱': ['상자?', '직사각형?', '???'],
-  '🎭': ['얼굴?', '물체?', '???'],
-};
-
-// AI 시점용 극단적 노이즈
-const applyAIViewNoise = (ctx, width, height) => {
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-  
-  // 극심한 픽셀 노이즈
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * 100));
-    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * 100));
-    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * 100));
-  }
-  ctx.putImageData(imageData, 0, 0);
-  
-  // 심한 블록 가림
-  for (let i = 0; i < 8; i++) {
-    ctx.fillStyle = `rgba(${Math.random()*100}, ${Math.random()*100}, ${Math.random()*100}, 0.7)`;
-    ctx.fillRect(
-      Math.random() * width * 0.7,
-      Math.random() * height * 0.7,
-      15 + Math.random() * 15,
-      15 + Math.random() * 15
-    );
-  }
-  
-  // 글리치 라인
-  for (let i = 0; i < 5; i++) {
-    ctx.strokeStyle = `rgba(255, 0, ${Math.random()*255}, 0.5)`;
-    ctx.lineWidth = 2 + Math.random() * 3;
-    ctx.beginPath();
-    ctx.moveTo(0, Math.random() * height);
-    ctx.lineTo(width, Math.random() * height);
-    ctx.stroke();
-  }
-};
-
+// ============================================
 // 데모 CAPTCHA 컴포넌트
+// ============================================
 function DemoCaptcha({ onClose, onComplete }) {
   const [phase, setPhase] = useState('intro');
   const [isDragging, setIsDragging] = useState(false);
@@ -172,11 +41,6 @@ function DemoCaptcha({ onClose, onComplete }) {
   const [droppedItems, setDroppedItems] = useState([]);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
-  const [noiseEnabled, setNoiseEnabled] = useState(true);
-  const [aiViewMode, setAiViewMode] = useState(false);
-  const [aiLabels, setAiLabels] = useState([]);
-  const [dynamicNoiseEnabled, setDynamicNoiseEnabled] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
   const animationRef = useRef(null);
   const frameCountRef = useRef(0);
   
@@ -328,20 +192,9 @@ function DemoCaptcha({ onClose, onComplete }) {
     setPhase('phaseB');
   };
 
-  // Phase B 이미지에 Adversarial Perturbation 적용
+  // Phase B 이미지 그리기
   useEffect(() => {
     if (phase !== 'phaseB' || !currentQuestion) return;
-    
-    // AI 라벨 생성
-    if (aiViewMode && noiseEnabled) {
-      const labels = currentQuestion.images.map(emoji => {
-        const wrongLabels = AI_WRONG_LABELS[emoji] || ['???'];
-        return wrongLabels[Math.floor(Math.random() * wrongLabels.length)];
-      });
-      setAiLabels(labels);
-    } else {
-      setAiLabels([]);
-    }
     
     currentQuestion.images.forEach((emoji, idx) => {
       const canvas = imageCanvasRefs.current[idx];
@@ -361,23 +214,8 @@ function DemoCaptcha({ onClose, onComplete }) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(emoji, size / 2, size / 2);
-      
-      // Adversarial Perturbation 적용
-      if (noiseEnabled) {
-        const imageData = ctx.getImageData(0, 0, size, size);
-        const data = imageData.data;
-        const intensity = aiViewMode ? 80 : 25; // AI 시점은 더 강하게
-        
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = Math.max(0, Math.min(255, data[i] + (Math.random() - 0.5) * intensity));
-          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + (Math.random() - 0.5) * intensity));
-          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + (Math.random() - 0.5) * intensity));
-        }
-        
-        ctx.putImageData(imageData, 0, 0);
-      }
     });
-  }, [phase, currentQuestion, noiseEnabled, aiViewMode]);
+  }, [phase, currentQuestion]);
 
   // Phase B 드래그 핸들러
   const handlePhaseBDragStart = (index, e) => {
@@ -509,47 +347,8 @@ function DemoCaptcha({ onClose, onComplete }) {
               <span className="phase-title">{currentQuestion.question}</span>
             </div>
             
-            {/* 뷰 모드 토글 */}
-            <div className="view-mode-toggle">
-              <button 
-                className={`view-btn ${!aiViewMode ? 'active' : ''}`}
-                onClick={() => setAiViewMode(false)}
-              >
-                👤 사람 시점
-              </button>
-              <button 
-                className={`view-btn ai ${aiViewMode ? 'active' : ''}`}
-                onClick={() => setAiViewMode(true)}
-                disabled={!noiseEnabled}
-              >
-                🤖 AI 시점
-              </button>
-            </div>
-            
-            {/* AI 시점 설명 */}
-            {aiViewMode && noiseEnabled && (
-              <div className="ai-view-notice">
-                <span>⚠️ AI는 Adversarial Perturbation으로 인해 정확히 인식하지 못합니다</span>
-              </div>
-            )}
-            
-            {/* 노이즈 토글 */}
-            <div className="noise-toggle">
-              <label>
-                <input 
-                  type="checkbox" 
-                  checked={noiseEnabled} 
-                  onChange={(e) => {
-                    setNoiseEnabled(e.target.checked);
-                    if (!e.target.checked) setAiViewMode(false);
-                  }} 
-                />
-                <span>Adversarial Perturbation</span>
-              </label>
-            </div>
-            
             {/* 3x3 이미지 그리드 */}
-            <div className={`captcha-grid demo-grid ${aiViewMode ? 'ai-view' : ''}`}>
+            <div className="captcha-grid demo-grid">
               {currentQuestion.images.map((emoji, index) => (
                 <div
                   key={index}
@@ -562,10 +361,6 @@ function DemoCaptcha({ onClose, onComplete }) {
                     className="grid-canvas"
                   />
                   {droppedItems.includes(index) && <div className="cell-check">✓</div>}
-                  {/* AI 시점일 때 잘못된 라벨 표시 */}
-                  {aiViewMode && noiseEnabled && aiLabels[index] && (
-                    <div className="ai-label">{aiLabels[index]}</div>
-                  )}
                 </div>
               ))}
             </div>
@@ -698,9 +493,8 @@ function DemoSelector({ onSelectReal, onSelectDemo, onClose }) {
             <div className="option-icon">🎮</div>
             <div className="option-content">
               <strong>데모 체험</strong>
-              <span>노이즈 효과 테스트 포함</span>
+              <span>인터랙티브 데모 체험</span>
             </div>
-            <div className="option-badge">NEW</div>
           </button>
         </div>
       </div>
@@ -1206,7 +1000,6 @@ function Footer({ onPricingClick, onDashboardClick }) {
 function App() {
   const [showSelector, setShowSelector] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
-  const [showNoiseTest, setShowNoiseTest] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
@@ -1289,28 +1082,6 @@ function App() {
     );
   }
 
-  // NoiseTest 페이지 표시
-  if (showNoiseTest) {
-    return (
-      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-        <nav className="nav">
-          <div className="nav-container">
-            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowNoiseTest(false); }}>
-              <span className="logo-t">T</span>
-              <span className="logo-colon">:</span>
-              <span className="logo-curity">CURITY</span>
-            </a>
-            <div className="nav-simple">
-              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowNoiseTest(false); }}>← 홈으로</a>
-              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
-            </div>
-          </div>
-        </nav>
-        <NoiseTest />
-      </div>
-    );
-  }
-
   return (
     <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
       <Nav 
@@ -1324,15 +1095,6 @@ function App() {
       <DemoSection onDemoClick={handleDemoClick} />
       <InstallSection />
       <Footer onPricingClick={() => setShowPricing(true)} onDashboardClick={() => setShowDashboard(true)} />
-      
-      {/* 노이즈 테스트 플로팅 버튼 */}
-      <button 
-        className="noise-test-fab"
-        onClick={() => setShowNoiseTest(true)}
-        title="AI 노이즈 테스트"
-      >
-        🔬
-      </button>
       
       {showSelector && (
         <DemoSelector 
