@@ -239,43 +239,6 @@ function PricingPage({ onBack }) {
           <table className="comparison-table">
             <thead>
               <tr>
-                <th>서비스</th>
-                <th>무료 티어</th>
-                <th>유료 시작</th>
-                <th>초과 요금</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="competitor-row">
-                <td className="blurred">G사 CAPTCHA</td>
-                <td className="blurred">10,000/월</td>
-                <td className="blurred">$8/월</td>
-                <td className="blurred">$1/1,000건</td>
-              </tr>
-              <tr className="competitor-row">
-                <td className="blurred">H사 CAPTCHA</td>
-                <td className="blurred">100,000/월</td>
-                <td className="blurred">$99/월</td>
-                <td className="blurred">$0.99/1,000건</td>
-              </tr>
-              <tr className="highlight-row">
-                <td><strong>T:CURITY</strong></td>
-                <td><strong>10,000/월</strong></td>
-                <td><strong>₩39,000/월</strong></td>
-                <td><strong>₩30~50/1,000건</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Price Comparison */}
-      <section className="pricing-comparison competitor">
-        <h2>가격 비교</h2>
-        <div className="comparison-table-wrapper">
-          <table className="comparison-table">
-            <thead>
-              <tr>
                 <th>항목</th>
                 <th className="competitor-col">타 서비스 A</th>
                 <th className="competitor-col">타 서비스 B</th>
