@@ -40,7 +40,7 @@ const DIFFICULTY_CONFIG = {
     colorShift: 0, 
     brightnessRange: 0,
     color: '#4ade80',
-    desc: '노이즈 없음 - Phase 1에서 확실한 사람으로 판정'
+    desc: '노이즈 없음 - Phase A에서 확실한 사람으로 판정'
   },
   MEDIUM: { 
     label: '보통', 
@@ -48,7 +48,7 @@ const DIFFICULTY_CONFIG = {
     colorShift: 5, 
     brightnessRange: 0.1,
     color: '#fbbf24',
-    desc: '약한 노이즈 - Phase 1에서 애매한 행동 패턴 감지'
+    desc: '약한 노이즈 - Phase A에서 애매한 행동 패턴 감지'
   },
   HIGH: { 
     label: '어려움', 
@@ -56,7 +56,7 @@ const DIFFICULTY_CONFIG = {
     colorShift: 15, 
     brightnessRange: 0.2,
     color: '#ef4444',
-    desc: '강한 노이즈 - Phase 1에서 봇에 가까운 행동 감지'
+    desc: '강한 노이즈 - Phase A에서 봇에 가까운 행동 감지'
   },
 };
 
@@ -449,17 +449,17 @@ function DemoCaptcha({ onClose, onComplete }) {
             {/* 난이도 설명 */}
             <div className="difficulty-info" style={{ color: DIFFICULTY_CONFIG[difficulty].color }}>
               <div className="difficulty-desc">
-                {difficulty === 'NORMAL' && '✓ 노이즈 없음 - Phase 1에서 확실한 사람으로 판정'}
-                {difficulty === 'MEDIUM' && '⚡ 약한 노이즈 - Phase 1에서 애매한 행동 패턴 감지'}
-                {difficulty === 'HIGH' && '🔥 강한 노이즈 - Phase 1에서 봇에 가까운 행동 감지'}
+                {difficulty === 'NORMAL' && '✓ 노이즈 없음 - Phase A에서 확실한 사람으로 판정'}
+                {difficulty === 'MEDIUM' && '⚡ 약한 노이즈 - Phase A에서 애매한 행동 패턴 감지'}
+                {difficulty === 'HIGH' && '🔥 강한 노이즈 - Phase A에서 봇에 가까운 행동 감지'}
               </div>
-              {difficulty !== 'NORMAL' && (
+              {/* {difficulty !== 'NORMAL' && (
                 <div className="difficulty-params">
                   노이즈: {DIFFICULTY_CONFIG[difficulty].noiseLevel} | 
                   색상왜곡: ±{DIFFICULTY_CONFIG[difficulty].colorShift} | 
                   밝기: ±{(DIFFICULTY_CONFIG[difficulty].brightnessRange * 100).toFixed(0)}%
                 </div>
-              )}
+              )} */}
             </div>
             
             {/* 3x3 이미지 그리드 */}
