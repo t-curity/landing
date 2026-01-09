@@ -1,92 +1,337 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
-import PricingPage from './PricingPage';
-import AdminDashboard from './AdminDashboard';
 
 // ============================================
-// 데모용 CAPTCHA 컴포넌트 (Mock)
+// SVG Icons (Lucide-style, MIT License)
 // ============================================
-
-// 샘플 이미지 데이터 (정답 4개로 통일)
-const DEMO_QUESTIONS = [
-  {
-    question: '🐕 강아지를 모두 찾아 순서대로 드래그하세요',
-    images: ['🐕', '🚗', '🍕', '🐕', '🎸', '🐕', '🏠', '⚽', '🐕'],
-    answers: [0, 3, 5, 8],
-    answerCount: 4,
-  },
-  {
-    question: '🍎 과일을 모두 찾아 순서대로 드래그하세요',
-    images: ['🍎', '🚀', '🍊', '💎', '🍇', '🔥', '⭐', '🍌', '🌙'],
-    answers: [0, 2, 4, 7],
-    answerCount: 4,
-  },
-  {
-    question: '🚗 탈것을 모두 찾아 순서대로 드래그하세요',
-    images: ['🚗', '🌸', '✈️', '🎵', '🚢', '🍰', '🚲', '📱', '🎭'],
-    answers: [0, 2, 4, 6],
-    answerCount: 4,
-  },
-];
-
-// 난이도별 노이즈 설정 (백엔드 image_tools.py 기준)
-// NORMAL: 노이즈 없음
-// MEDIUM: base_noise=10, color_shift=5, brightness_range=0.1
-// HIGH: base_noise=25, color_shift=15, brightness_range=0.2
-const DIFFICULTY_CONFIG = {
-  NORMAL: { 
-    label: '쉬움', 
-    noiseLevel: 0, 
-    colorShift: 0, 
-    brightnessRange: 0,
-    color: '#4ade80',
-    desc: '노이즈 없음 - Phase A에서 확실한 사람으로 판정'
-  },
-  MEDIUM: { 
-    label: '보통', 
-    noiseLevel: 10, 
-    colorShift: 5, 
-    brightnessRange: 0.1,
-    color: '#fbbf24',
-    desc: '약한 노이즈 - Phase A에서 애매한 행동 패턴 감지'
-  },
-  HIGH: { 
-    label: '어려움', 
-    noiseLevel: 25, 
-    colorShift: 15, 
-    brightnessRange: 0.2,
-    color: '#ef4444',
-    desc: '강한 노이즈 - Phase A에서 봇에 가까운 행동 감지'
-  },
+const Icons = {
+  chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+  image: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+  shield: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  zap: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>,
+  globe: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  activity: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+  lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  play: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  dog: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5M14 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.344-2.5"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17l-.75-.75Z"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/></svg>,
+  apple: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>,
+  car: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>,
+  github: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>,
 };
 
 // ============================================
-// 데모 CAPTCHA 컴포넌트
+// 다국어 지원
 // ============================================
-function DemoCaptcha({ onClose, onComplete }) {
+const translations = {
+  ko: {
+    nav: { home: '홈', pricing: '가격', dashboard: '대시보드' },
+    hero: {
+      badge: '차세대 CAPTCHA 보안',
+      title1: '봇은 막고,',
+      title2: '사람은 통과',
+      desc: '행동 패턴 분석과 이미지 인식을 결합한 2-Phase 검증으로 99.7%의 봇 탐지율',
+      tryDemo: '데모 체험',
+      docs: '설치 가이드',
+      stat1: '탐지율',
+      stat2: '평균 시간',
+      stat3: '이중 검증'
+    },
+    features: {
+      title: 'T:CURITY를 선택해야 하는 이유',
+      desc: '단순한 체크박스가 아닙니다. 다층 검증으로 진짜 보안을 제공합니다.',
+      items: [
+        { tag: 'Phase 1', title: '행동 패턴 분석', text: 'Isolation Forest 알고리즘으로 마우스 궤적과 미세 움직임을 실시간 분석합니다.' },
+        { tag: 'Phase 2', title: '이미지 분류', text: 'Random Forest 기반 시각적 인지 테스트로 2차 검증을 수행합니다.' },
+        { tag: '보안', title: '서버 검증', text: 'Zero-trust 아키텍처로 모든 토큰은 S2S 통신으로만 검증됩니다.' },
+        { tag: '보호', title: '요청 제한', text: 'IP 기반 적응형 스로틀링으로 무차별 대입 공격을 방어합니다.' },
+      ]
+    },
+    demo: { title: '직접 체험해보세요', desc: '2-Phase 검증이 어떻게 작동하는지 경험해보세요.', phase1: '드래그 분석', phase2: '이미지 선택', launch: '데모 시작' },
+    install: { title: '몇 분만에 설치 완료', desc: '몇 줄의 코드로 T:CURITY를 추가하세요.', step1: 'SDK 추가', step2: '초기화', step3: '검증' },
+    pricing: {
+      title: '오픈런도 견디는 CAPTCHA',
+      desc: '숨겨진 비용 없이, 사용한 만큼만 지불하세요',
+      monthly: '월간 결제',
+      annual: '연간 결제',
+      discount: '20% 할인',
+      popular: '가장 인기',
+      cta: '지금 바로 시작하세요',
+      ctaDesc: '무료로 테스트하고, 필요할 때 확장하세요',
+      start: '무료로 시작하기',
+      contact: '데모 요청',
+      compare: '타사 서비스 비교',
+      compareNote: '* T:CURITY 초과 요금은 경쟁사 대비 약 97% 저렴',
+      perMonth: '/월',
+      requests: '요청',
+      concurrent: '동시 접속',
+      negotiate: '협의',
+      unlimited: '무제한',
+      plans: [
+        { name: 'Starter', desc: '소규모 서비스 & 테스트용', requests: '10,000', concurrent: '50명', features: ['월 10,000 요청', '동시 접속 50명', '기본 봇 탐지 (AI 기반)', '기본 대시보드'], limitations: ['T:CURITY 워터마크', '오토스케일링 미지원'], cta: '무료로 시작' },
+        { name: 'Growth', desc: '성장하는 서비스에 적합', requests: '100,000', concurrent: '500명', features: ['월 100,000 요청', '동시 접속 500명', '오토스케일링 (최대 1,000명)', '프리미엄 봇 탐지', '고급 대시보드', '이메일 지원', '워터마크 제거'], limitations: [], cta: '시작하기' },
+        { name: 'Business', desc: '티켓/예약 서비스 최적화', requests: '500,000', concurrent: '2,000명', features: ['월 500,000 요청', '동시 접속 2,000명', '오토스케일링 (최대 5,000명)', '프리미엄+ 봇 탐지', '실시간 대시보드', 'Slack/웹훅 알림', '커스텀 브랜딩', 'SLA 99.5%'], limitations: [], cta: '가장 인기' },
+        { name: 'Enterprise', desc: '대규모 오픈런 완벽 대응', requests: '무제한', concurrent: '무제한', features: ['무제한 요청', '무제한 동시 접속', '전담 기술 매니저', '24/7 긴급 지원', 'SLA 99.9%', '온프레미스 옵션'], limitations: [], cta: '문의하기' },
+      ],
+      competitor: {
+        headers: ['기능', '글로벌 A사', '글로벌 B사', 'T:CURITY'],
+        rows: [
+          ['무료 티어', '10,000/월', '100,000/월', '10,000/월'],
+          ['유료 시작', '$8/월', '$99/월', '₩39,000/월'],
+          ['초과 요금', '$1/1,000건', '$0.99/1,000건', '₩30~50/1,000건'],
+          ['AI 봇 탐지', 'Enterprise만', 'Enterprise만', '전 플랜'],
+          ['2-Phase 인증', '—', '—', '✓'],
+        ]
+      }
+    },
+    dashboard: {
+      title: '실시간 모니터링',
+      desc: '봇 차단 현황과 트래픽을 한눈에 확인하세요',
+      requests: '총 요청',
+      blocked: '차단됨',
+      rate: '성공률',
+      latency: '평균 지연',
+      region: '지역별 트래픽',
+      activity: '최근 활동',
+      country: '국가',
+      healthy: '정상'
+    },
+    footer: { copyright: '© 2026 T:CURITY. All rights reserved.' },
+    captcha: {
+      title: '사람 인증',
+      desc: '2단계 인증을 완료하세요',
+      begin: '시작',
+      drag: '드래그',
+      select: '선택',
+      phase1: '선을 따라 드래그하세요',
+      phase2: '순서대로 선택하세요',
+      hint: '위에서 아래로',
+      verified: '인증 완료',
+      done: '완료',
+      reset: '초기화',
+      easy: '쉬움',
+      medium: '보통',
+      hard: '어려움',
+      questions: ['원을 순서대로 선택하세요', '삼각형을 순서대로 선택하세요', '사각형을 순서대로 선택하세요']
+    },
+    selector: { title: '모드 선택', live: '실제 SDK', liveDesc: '실제 인증 체험', demo: '데모', demoDesc: '노이즈 레벨 테스트' }
+  },
+  en: {
+    nav: { home: 'Home', pricing: 'Pricing', dashboard: 'Dashboard' },
+    hero: {
+      badge: 'Next-Gen CAPTCHA Security',
+      title1: 'Block Bots.',
+      title2: 'Pass Humans.',
+      desc: '2-Phase behavioral analysis and image recognition with 99.7% bot detection rate.',
+      tryDemo: 'Try Demo',
+      docs: 'Documentation',
+      stat1: 'Detection',
+      stat2: 'Avg Time',
+      stat3: 'Verification'
+    },
+    features: {
+      title: 'Why T:CURITY?',
+      desc: 'Not just a checkbox. Multi-layer verification that actually works.',
+      items: [
+        { tag: 'Phase 1', title: 'Behavioral Analysis', text: 'Isolation Forest algorithm analyzes mouse trajectories and micro-movements in real-time.' },
+        { tag: 'Phase 2', title: 'Image Classification', text: 'Random Forest based visual cognitive challenges for secondary verification.' },
+        { tag: 'Security', title: 'Server Validation', text: 'Zero-trust architecture with mandatory S2S token verification.' },
+        { tag: 'Protection', title: 'Rate Limiting', text: 'IP-based adaptive throttling against brute force attacks.' },
+      ]
+    },
+    demo: { title: 'Try it yourself', desc: 'Experience the 2-phase verification flow.', phase1: 'Drag Analysis', phase2: 'Image Selection', launch: 'Launch Demo' },
+    install: { title: 'Integration in minutes', desc: 'Add T:CURITY with just a few lines of code.', step1: 'Add SDK', step2: 'Initialize', step3: 'Verify' },
+    pricing: {
+      title: 'CAPTCHA that survives rush hour',
+      desc: 'No hidden costs. Pay only for what you use.',
+      monthly: 'Monthly',
+      annual: 'Annual',
+      discount: '20% OFF',
+      popular: 'Most Popular',
+      cta: 'Get started now',
+      ctaDesc: 'Test for free, scale when needed',
+      start: 'Start Free',
+      contact: 'Request Demo',
+      compare: 'Compare with Competitors',
+      compareNote: '* T:CURITY overage is ~97% cheaper than competitors',
+      perMonth: '/mo',
+      requests: 'requests',
+      concurrent: 'concurrent',
+      negotiate: 'Contact',
+      unlimited: 'Unlimited',
+      plans: [
+        { name: 'Starter', desc: 'For small projects & testing', requests: '10,000', concurrent: '50', features: ['10,000 requests/mo', '50 concurrent users', 'Basic AI bot detection', 'Basic dashboard'], limitations: ['T:CURITY watermark', 'No auto-scaling'], cta: 'Start Free' },
+        { name: 'Growth', desc: 'For growing services', requests: '100,000', concurrent: '500', features: ['100,000 requests/mo', '500 concurrent users', 'Auto-scaling (up to 1,000)', 'Premium bot detection', 'Advanced dashboard', 'Email support', 'No watermark'], limitations: [], cta: 'Get Started' },
+        { name: 'Business', desc: 'For ticketing & reservations', requests: '500,000', concurrent: '2,000', features: ['500,000 requests/mo', '2,000 concurrent users', 'Auto-scaling (up to 5,000)', 'Premium+ bot detection', 'Real-time dashboard', 'Slack/Webhook alerts', 'Custom branding', 'SLA 99.5%'], limitations: [], cta: 'Most Popular' },
+        { name: 'Enterprise', desc: 'For large-scale events', requests: 'Unlimited', concurrent: 'Unlimited', features: ['Unlimited requests', 'Unlimited concurrent', 'Dedicated manager', '24/7 support', 'SLA 99.9%', 'On-premise option'], limitations: [], cta: 'Contact Us' },
+      ],
+      competitor: {
+        headers: ['Feature', 'Global A', 'Global B', 'T:CURITY'],
+        rows: [
+          ['Free tier', '10,000/mo', '100,000/mo', '10,000/mo'],
+          ['Paid starts', '$8/mo', '$99/mo', '₩39,000/mo'],
+          ['Overage', '$1/1,000', '$0.99/1,000', '₩30~50/1,000'],
+          ['AI Detection', 'Enterprise only', 'Enterprise only', 'All plans'],
+          ['2-Phase', '—', '—', '✓'],
+        ]
+      }
+    },
+    dashboard: {
+      title: 'Real-time Monitoring',
+      desc: 'Monitor bot blocking and traffic at a glance',
+      requests: 'Total Requests',
+      blocked: 'Blocked',
+      rate: 'Success Rate',
+      latency: 'Avg Latency',
+      region: 'Traffic by Region',
+      activity: 'Recent Activity',
+      country: 'Country',
+      healthy: 'Healthy'
+    },
+    footer: { copyright: '© 2026 T:CURITY. All rights reserved.' },
+    captcha: {
+      title: 'Human Verification',
+      desc: 'Complete 2-phase verification',
+      begin: 'Begin',
+      drag: 'Drag',
+      select: 'Select',
+      phase1: 'Drag along the line',
+      phase2: 'Select in order',
+      hint: 'Top to bottom',
+      verified: 'Verified',
+      done: 'Done',
+      reset: 'Reset',
+      easy: 'Easy',
+      medium: 'Medium',
+      hard: 'Hard',
+      questions: ['Select all circles in order', 'Select all triangles in order', 'Select all squares in order']
+    },
+    selector: { title: 'Choose Mode', live: 'Live SDK', liveDesc: 'Real verification', demo: 'Demo', demoDesc: 'Test noise levels' }
+  }
+};
+
+const DIFFICULTY_CONFIG = {
+  NORMAL: { noiseLevel: 0, colorShift: 0, brightnessRange: 0, color: '#10b981' },
+  MEDIUM: { noiseLevel: 10, colorShift: 5, brightnessRange: 0.1, color: '#f59e0b' },
+  HIGH: { noiseLevel: 25, colorShift: 15, brightnessRange: 0.2, color: '#ef4444' },
+};
+
+// 스크롤 애니메이션
+function useScrollAnimation(activeTab) {
+  useEffect(() => {
+    // 약간의 딜레이 후 애니메이션 시작 (DOM 렌더링 완료 대기)
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('.animate-on-scroll');
+      
+      // 먼저 모든 요소에서 visible 제거
+      elements.forEach(el => el.classList.remove('visible'));
+      
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
+          });
+        },
+        { threshold: 0.05, rootMargin: '50px 0px -20px 0px' }
+      );
+      
+      elements.forEach(el => observer.observe(el));
+      
+      // 클린업 함수를 저장
+      return () => observer.disconnect();
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+}
+
+// ============================================
+// Demo CAPTCHA
+// ============================================
+function DemoCaptcha({ onClose, onComplete, t }) {
   const [phase, setPhase] = useState('intro');
   const [isDragging, setIsDragging] = useState(false);
   const [dragPath, setDragPath] = useState([]);
   const [phaseAResult, setPhaseAResult] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [droppedItems, setDroppedItems] = useState([]);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [difficulty, setDifficulty] = useState('NORMAL');
-  const animationRef = useRef(null);
-  const frameCountRef = useRef(0);
-  
   const canvasRef = useRef(null);
   const imageCanvasRefs = useRef([]);
 
-  // Phase A 시작
-  const startPhaseA = () => {
-    setPhase('phaseA');
-    setDragPath([]);
-    setPhaseAResult(null);
+  // 질문별 이미지 구성: 심플한 도형 사용
+  const demoQuestions = [
+    { 
+      // 원을 순서대로 선택하세요
+      answers: [0, 3, 5, 8],
+      icons: ['circle', 'triangle', 'square', 'circle', 'diamond', 'circle', 'triangle', 'square', 'circle']
+    },
+    { 
+      // 삼각형을 순서대로 선택하세요
+      answers: [1, 4, 6, 7],
+      icons: ['circle', 'triangle', 'square', 'diamond', 'triangle', 'circle', 'triangle', 'triangle', 'square']
+    },
+    { 
+      // 사각형을 순서대로 선택하세요
+      answers: [2, 3, 5, 8],
+      icons: ['circle', 'triangle', 'square', 'square', 'diamond', 'square', 'circle', 'triangle', 'square']
+    },
+  ];
+
+  // 아이콘 그리기 함수 - 심플한 도형
+  const drawIcon = (ctx, type, size) => {
+    const c = size / 2;
+    const r = size * 0.32;
+    ctx.strokeStyle = '#FFE103';
+    ctx.fillStyle = '#FFE103';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    switch(type) {
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(c, c, r, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+
+      case 'triangle':
+        ctx.beginPath();
+        ctx.moveTo(c, c - r);
+        ctx.lineTo(c + r * 0.95, c + r * 0.75);
+        ctx.lineTo(c - r * 0.95, c + r * 0.75);
+        ctx.closePath();
+        ctx.stroke();
+        break;
+
+      case 'square':
+        const half = r * 0.8;
+        ctx.strokeRect(c - half, c - half, half * 2, half * 2);
+        break;
+
+      case 'diamond':
+        ctx.beginPath();
+        ctx.moveTo(c, c - r);
+        ctx.lineTo(c + r * 0.75, c);
+        ctx.lineTo(c, c + r);
+        ctx.lineTo(c - r * 0.75, c);
+        ctx.closePath();
+        ctx.stroke();
+        break;
+
+      default:
+        ctx.beginPath();
+        ctx.arc(c, c, r * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+    }
   };
 
-  // Phase A 드래그 핸들러
+  const startPhaseA = () => { setPhase('phaseA'); setDragPath([]); setPhaseAResult(null); };
+  
   const handlePhaseAStart = (e) => {
     e.preventDefault();
     const rect = canvasRef.current.getBoundingClientRect();
@@ -94,11 +339,7 @@ function DemoCaptcha({ onClose, onComplete }) {
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const x = (clientX - rect.left) / rect.width;
     const y = (clientY - rect.top) / rect.height;
-    
-    if (y < 0.25) {
-      setIsDragging(true);
-      setDragPath([{ x, y, t: Date.now() }]);
-    }
+    if (y < 0.25) { setIsDragging(true); setDragPath([{ x, y, t: Date.now() }]); }
   };
 
   const handlePhaseAMove = (e) => {
@@ -107,772 +348,330 @@ function DemoCaptcha({ onClose, onComplete }) {
     const rect = canvasRef.current.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const x = (clientX - rect.left) / rect.width;
-    const y = (clientY - rect.top) / rect.height;
-    setDragPath(prev => [...prev, { x, y, t: Date.now() }]);
+    setDragPath(prev => [...prev, { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height, t: Date.now() }]);
   };
 
   const handlePhaseAEnd = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    
-    if (dragPath.length > 10) {
-      const startY = dragPath[0].y;
-      const endY = dragPath[dragPath.length - 1].y;
-      
-      if (endY - startY > 0.5) {
-        setPhaseAResult('success');
-        setTimeout(() => startPhaseB(), 800);
-      } else {
-        setPhaseAResult('retry');
-        setTimeout(() => {
-          setDragPath([]);
-          setPhaseAResult(null);
-        }, 1500);
-      }
+    if (dragPath.length > 10 && dragPath[dragPath.length - 1].y > 0.75) {
+      setPhaseAResult('success');
+      setTimeout(() => startPhaseB(), 1000);
+    } else if (dragPath.length > 5) {
+      setPhaseAResult('fail');
+      setTimeout(() => { setDragPath([]); setPhaseAResult(null); }, 1500);
     }
   };
 
-  // Phase A 캔버스 그리기
   useEffect(() => {
-    if (phase !== 'phaseA' || !canvasRef.current) return;
-    
+    if (phase !== 'phaseA') return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
+    canvas.width = rect.width * 2; canvas.height = rect.height * 2;
     ctx.scale(2, 2);
-    
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    ctx.fillStyle = '#011142';
-    ctx.fillRect(0, 0, rect.width, rect.height);
-    
-    // 절취선
-    ctx.strokeStyle = 'rgba(255, 225, 3, 0.4)';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 8]);
-    ctx.beginPath();
-    ctx.moveTo(rect.width / 2, 30);
-    ctx.lineTo(rect.width / 2, rect.height - 30);
-    ctx.stroke();
-    
-    ctx.font = '24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('✂️', rect.width / 2, 25);
-    
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#FFE103';
-    ctx.beginPath();
-    ctx.arc(rect.width / 2, 50, 8, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.fillStyle = 'rgba(255, 225, 3, 0.3)';
-    ctx.beginPath();
-    ctx.arc(rect.width / 2, rect.height - 50, 12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFE103';
-    ctx.beginPath();
-    ctx.arc(rect.width / 2, rect.height - 50, 6, 0, Math.PI * 2);
-    ctx.fill();
-    
+    ctx.fillStyle = '#080810'; ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    for (let i = 0; i < rect.width; i += 24) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, rect.height); ctx.stroke(); }
+    for (let i = 0; i < rect.height; i += 24) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(rect.width, i); ctx.stroke(); }
+    const centerX = rect.width / 2;
+    ctx.strokeStyle = 'rgba(255,214,0,0.3)'; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(centerX, rect.height * 0.08); ctx.lineTo(centerX, rect.height * 0.92); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,214,0,0.2)';
+    ctx.beginPath(); ctx.arc(centerX, rect.height * 0.08, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(centerX, rect.height * 0.92, 10, 0, Math.PI * 2); ctx.fill();
     if (dragPath.length > 1) {
-      ctx.strokeStyle = '#FFE103';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.setLineDash([]);
-      ctx.beginPath();
+      ctx.strokeStyle = '#FFE103'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
       ctx.moveTo(dragPath[0].x * rect.width, dragPath[0].y * rect.height);
-      dragPath.forEach(point => {
-        ctx.lineTo(point.x * rect.width, point.y * rect.height);
-      });
+      dragPath.forEach(p => ctx.lineTo(p.x * rect.width, p.y * rect.height));
       ctx.stroke();
-      
-      const lastPoint = dragPath[dragPath.length - 1];
-      ctx.fillStyle = '#FFE103';
-      ctx.shadowColor = '#FFE103';
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.arc(lastPoint.x * rect.width, lastPoint.y * rect.height, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
     }
-    
-    if (phaseAResult === 'success') {
-      ctx.fillStyle = 'rgba(255, 225, 3, 0.2)';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.fillStyle = '#FFE103';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('✓', rect.width / 2, rect.height / 2 + 15);
-    } else if (phaseAResult === 'retry') {
-      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.fillStyle = '#FF6464';
-      ctx.font = '16px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('다시 시도해주세요', rect.width / 2, rect.height / 2);
-    }
+    if (phaseAResult === 'success') { ctx.fillStyle = 'rgba(16,185,129,0.15)'; ctx.fillRect(0, 0, rect.width, rect.height); }
+    else if (phaseAResult === 'fail') { ctx.fillStyle = 'rgba(239,68,68,0.15)'; ctx.fillRect(0, 0, rect.width, rect.height); }
   }, [phase, dragPath, phaseAResult]);
 
-  // Phase B 시작
   const startPhaseB = () => {
-    const randomQ = DEMO_QUESTIONS[Math.floor(Math.random() * DEMO_QUESTIONS.length)];
-    setCurrentQuestion(randomQ);
+    const idx = Math.floor(Math.random() * demoQuestions.length);
+    setQuestionIndex(idx);
     setDroppedItems([]);
     setPhase('phaseB');
   };
 
-  // Phase B 이미지 그리기 (백엔드와 동일한 노이즈 적용)
   useEffect(() => {
-    if (phase !== 'phaseB' || !currentQuestion) return;
+    if (phase !== 'phaseB') return;
+    const current = demoQuestions[questionIndex];
+    const { noiseLevel } = DIFFICULTY_CONFIG[difficulty];
     
-    const config = DIFFICULTY_CONFIG[difficulty];
-    const { noiseLevel, colorShift, brightnessRange } = config;
-    
-    currentQuestion.images.forEach((emoji, idx) => {
+    current.icons.forEach((iconType, idx) => {
       const canvas = imageCanvasRefs.current[idx];
       if (!canvas) return;
-      
       const ctx = canvas.getContext('2d');
-      const size = 80;
-      canvas.width = size;
-      canvas.height = size;
+      const size = 72;
+      canvas.width = size; canvas.height = size;
       
-      // 배경
-      ctx.fillStyle = '#1a1a3e';
+      ctx.fillStyle = '#0c0c14';
       ctx.fillRect(0, 0, size, size);
       
-      // 이모지
-      ctx.font = '40px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(emoji, size / 2, size / 2);
+      drawIcon(ctx, iconType, size);
       
-      // 노이즈 적용 (NORMAL이 아닐 때) - 백엔드 image_tools.py와 동일
       if (noiseLevel > 0) {
         const imageData = ctx.getImageData(0, 0, size, size);
         const data = imageData.data;
-        
-        // 채널별 색상 왜곡 값 (백엔드: random.randint(-color_shift, color_shift))
-        const rShift = (Math.random() * 2 - 1) * colorShift;
-        const gShift = (Math.random() * 2 - 1) * colorShift;
-        const bShift = (Math.random() * 2 - 1) * colorShift;
-        
-        // 밝기 변화 (백엔드: 1.0 + random.uniform(-brightness_range, brightness_range))
-        const brightness = 1.0 + (Math.random() * 2 - 1) * brightnessRange;
-        
         for (let i = 0; i < data.length; i += 4) {
-          // 1. 가우시안 노이즈 (백엔드: np.random.normal(0, noise_level))
-          const gaussianNoise = () => {
-            // Box-Muller 변환으로 가우시안 분포 생성
-            const u1 = Math.random();
-            const u2 = Math.random();
-            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * noiseLevel;
-          };
-          
-          let r = data[i] + gaussianNoise();
-          let g = data[i + 1] + gaussianNoise();
-          let b = data[i + 2] + gaussianNoise();
-          
-          // 2. 색상 왜곡 적용
-          r += rShift;
-          g += gShift;
-          b += bShift;
-          
-          // 3. 밝기 변화 적용
-          r *= brightness;
-          g *= brightness;
-          b *= brightness;
-          
-          // 클리핑 (0-255 범위)
-          data[i] = Math.max(0, Math.min(255, r));
-          data[i + 1] = Math.max(0, Math.min(255, g));
-          data[i + 2] = Math.max(0, Math.min(255, b));
+          if (data[i+3] > 0) {
+            const n = (Math.random() - 0.5) * noiseLevel * 2;
+            data[i] = Math.max(0, Math.min(255, data[i] + n));
+            data[i+1] = Math.max(0, Math.min(255, data[i+1] + n));
+            data[i+2] = Math.max(0, Math.min(255, data[i+2] + n));
+          }
         }
-        
         ctx.putImageData(imageData, 0, 0);
       }
     });
-  }, [phase, currentQuestion, difficulty]);
+  }, [phase, questionIndex, difficulty]);
 
-  // Phase B 드래그 핸들러
   const handlePhaseBDragStart = (index, e) => {
     if (droppedItems.includes(index)) return;
     e.preventDefault();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     setDraggedItem(index);
-    setDragPosition({ x: clientX, y: clientY });
+    setDragPosition({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
   };
 
   const handlePhaseBDragMove = (e) => {
     if (draggedItem === null) return;
     e.preventDefault();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    setDragPosition({ x: clientX, y: clientY });
+    setDragPosition({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
   };
 
   const handlePhaseBDragEnd = (e) => {
     if (draggedItem === null) return;
-    
     const dropZone = document.getElementById('demo-drop-zone');
     if (dropZone) {
       const rect = dropZone.getBoundingClientRect();
-      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-      
-      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+      const y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        const current = demoQuestions[questionIndex];
         const newDropped = [...droppedItems, draggedItem];
         setDroppedItems(newDropped);
-        
-        if (newDropped.length >= currentQuestion.answerCount) {
-          const allCorrect = newDropped.every(idx => currentQuestion.answers.includes(idx));
-          const hasAllAnswers = currentQuestion.answers.every(idx => newDropped.includes(idx));
-          
-          if (allCorrect && hasAllAnswers) {
-            setTimeout(() => setPhase('success'), 500);
-          } else {
-            setTimeout(() => setDroppedItems([]), 1000);
-          }
+        if (newDropped.length >= current.answers.length) {
+          const ok = newDropped.every(i => current.answers.includes(i)) && current.answers.every(i => newDropped.includes(i));
+          if (ok) setTimeout(() => setPhase('success'), 500);
+          else setTimeout(() => setDroppedItems([]), 1000);
         }
       }
     }
-    
     setDraggedItem(null);
   };
 
-  // 글로벌 이벤트
   useEffect(() => {
-    const handleMove = (e) => {
-      if (phase === 'phaseA') handlePhaseAMove(e);
-      if (phase === 'phaseB') handlePhaseBDragMove(e);
-    };
-    
-    const handleEnd = (e) => {
-      if (phase === 'phaseA') handlePhaseAEnd();
-      if (phase === 'phaseB') handlePhaseBDragEnd(e);
-    };
+    const move = (e) => { if (phase === 'phaseA') handlePhaseAMove(e); if (phase === 'phaseB') handlePhaseBDragMove(e); };
+    const end = (e) => { if (phase === 'phaseA') handlePhaseAEnd(); if (phase === 'phaseB') handlePhaseBDragEnd(e); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+    window.addEventListener('touchmove', move, { passive: false }); window.addEventListener('touchend', end);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', end); window.removeEventListener('touchmove', move); window.removeEventListener('touchend', end); };
+  });
 
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
+  const current = demoQuestions[questionIndex];
+  const diffLabels = { NORMAL: t.captcha.easy, MEDIUM: t.captcha.medium, HIGH: t.captcha.hard };
 
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-  }, [phase, isDragging, draggedItem, dragPath, droppedItems]);
-
-  return (
-    <div className="captcha-overlay" onClick={onClose}>
-      <div className="captcha-modal demo-modal" onClick={e => e.stopPropagation()}>
-        <button className="captcha-close" onClick={onClose}>×</button>
-        
-        <div className="captcha-logo">T:CURITY</div>
-        <div className="demo-badge">데모 모드</div>
-
-        {/* Intro */}
-        {phase === 'intro' && (
-          <div className="captcha-intro">
-            <div className="demo-intro-icon">🛡️</div>
-            <h3>2-Phase 인증 체험</h3>
-            <p>봇과 사람을 구분하는<br />차세대 CAPTCHA를 경험해보세요</p>
-            
-            <div className="demo-flow-preview">
-              <div className="flow-step">
-                <span>✂️</span>
-                <small>절취선 드래그</small>
-              </div>
-              <span className="flow-arrow">→</span>
-              <div className="flow-step">
-                <span>🖼️</span>
-                <small>이미지 분류</small>
-              </div>
-            </div>
-            
-            <button className="captcha-start-btn" onClick={startPhaseA}>
-              시작하기
-            </button>
-          </div>
-        )}
-
-        {/* Phase A */}
-        {phase === 'phaseA' && (
-          <div className="captcha-phase">
-            <div className="phase-header">
-              <span className="phase-badge">Phase 1</span>
-              <span className="phase-title">절취선을 따라 드래그하세요</span>
-            </div>
-            <canvas
-              ref={canvasRef}
-              className="captcha-canvas demo-canvas"
-              onMouseDown={handlePhaseAStart}
-              onTouchStart={handlePhaseAStart}
-            />
-            <p className="phase-hint">⬆️ 위에서 아래로 점선을 따라 드래그 ⬇️</p>
-          </div>
-        )}
-
-        {/* Phase B */}
-        {phase === 'phaseB' && currentQuestion && (
-          <div className="captcha-phase">
-            <div className="phase-header">
-              <span className="phase-badge">Phase 2</span>
-              <span className="phase-title">{currentQuestion.question}</span>
-            </div>
-            
-            {/* 난이도 선택 */}
-            <div className="difficulty-selector">
-              <span className="difficulty-label">난이도:</span>
-              {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
-                <button
-                  key={key}
-                  className={`difficulty-btn ${difficulty === key ? 'active' : ''}`}
-                  style={{ 
-                    '--btn-color': config.color,
-                    borderColor: difficulty === key ? config.color : 'transparent',
-                    background: difficulty === key ? `${config.color}20` : 'transparent'
-                  }}
-                  onClick={() => setDifficulty(key)}
-                >
-                  {config.label}
-                </button>
-              ))}
-            </div>
-            
-            {/* 난이도 설명 */}
-            <div className="difficulty-info" style={{ color: DIFFICULTY_CONFIG[difficulty].color }}>
-              <div className="difficulty-desc">
-                {difficulty === 'NORMAL' && '✓ 노이즈 없음 - Phase A에서 확실한 사람으로 판정'}
-                {difficulty === 'MEDIUM' && '⚡ 약한 노이즈 - Phase A에서 애매한 행동 패턴 감지'}
-                {difficulty === 'HIGH' && '🔥 강한 노이즈 - Phase A에서 봇에 가까운 행동 감지'}
-              </div>
-              {/* {difficulty !== 'NORMAL' && (
-                <div className="difficulty-params">
-                  노이즈: {DIFFICULTY_CONFIG[difficulty].noiseLevel} | 
-                  색상왜곡: ±{DIFFICULTY_CONFIG[difficulty].colorShift} | 
-                  밝기: ±{(DIFFICULTY_CONFIG[difficulty].brightnessRange * 100).toFixed(0)}%
-                </div>
-              )} */}
-            </div>
-            
-            {/* 3x3 이미지 그리드 */}
-            <div className="captcha-grid demo-grid">
-              {currentQuestion.images.map((emoji, index) => (
-                <div
-                  key={index}
-                  className={`grid-cell ${droppedItems.includes(index) ? 'selected' : ''} ${draggedItem === index ? 'dragging' : ''}`}
-                  onMouseDown={(e) => handlePhaseBDragStart(index, e)}
-                  onTouchStart={(e) => handlePhaseBDragStart(index, e)}
-                >
-                  <canvas
-                    ref={el => imageCanvasRefs.current[index] = el}
-                    className="grid-canvas"
-                  />
-                  {droppedItems.includes(index) && <div className="cell-check">✓</div>}
-                </div>
-              ))}
-            </div>
-            
-            {/* 드롭 영역 - 4칸 슬롯 */}
-            <div id="demo-drop-zone" className="drop-zone drop-zone-slots">
-              {[0, 1, 2, 3].map((slotIdx) => (
-                <div key={slotIdx} className={`drop-slot ${droppedItems[slotIdx] !== undefined ? 'filled' : ''}`}>
-                  {droppedItems[slotIdx] !== undefined ? (
-                    <span className="slot-emoji">{currentQuestion.images[droppedItems[slotIdx]]}</span>
-                  ) : (
-                    <span className="slot-number">{slotIdx + 1}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            <div className="phase-controls">
-              <span className="selection-count">선택: {droppedItems.length} / {currentQuestion.answerCount}</span>
-              <button className="reset-btn" onClick={() => setDroppedItems([])}>초기화</button>
-            </div>
-          </div>
-        )}
-
-        {/* Success */}
-        {phase === 'success' && (
-          <div className="captcha-success">
-            <div className="success-icon">✓</div>
-            <h3>인증 완료!</h3>
-            <p>사람으로 확인되었습니다</p>
-            <div className="success-session">
-              session_id: <code>tc_demo_{Math.random().toString(36).substr(2, 8)}</code>
-            </div>
-            <button className="captcha-start-btn" style={{ marginTop: '1rem' }} onClick={() => {
-              onComplete?.();
-              setTimeout(onClose, 300);
-            }}>
-              완료
-            </button>
-          </div>
-        )}
-
-        {/* 드래그 중인 아이템 */}
-        {draggedItem !== null && phase === 'phaseB' && (
-          <div
-            className="dragged-item"
-            style={{
-              left: dragPosition.x - 30,
-              top: dragPosition.y - 30,
-            }}
-          >
-            {currentQuestion.images[draggedItem]}
-          </div>
-        )}
-
-        {/* Progress */}
-        <div className="demo-progress">
-          <div className={`progress-dot ${phase === 'intro' ? 'active' : ''}`} />
-          <div className={`progress-dot ${phase === 'phaseA' ? 'active' : ''}`} />
-          <div className={`progress-dot ${phase === 'phaseB' ? 'active' : ''}`} />
-          <div className={`progress-dot ${phase === 'success' ? 'active' : ''}`} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// 실제 SDK 결과 표시 컴포넌트
-// ============================================
-function CaptchaResult({ sessionId, error, onClose }) {
-  if (!sessionId && !error) return null;
-  
   return (
     <div className="captcha-overlay" onClick={onClose}>
       <div className="captcha-modal" onClick={e => e.stopPropagation()}>
         <button className="captcha-close" onClick={onClose}>×</button>
+        <div className="captcha-header"><div className="captcha-brand"><span>T:</span>CURITY</div></div>
         
-        {sessionId && (
-          <div className="captcha-success">
-            <div className="success-icon">✓</div>
-            <h3>인증 완료!</h3>
-            <p>사람으로 확인되었습니다</p>
-            <div className="success-session">
-              session_id: <code>{sessionId}</code>
+        {phase === 'intro' && (
+          <div className="captcha-intro">
+            <div className="intro-icon">{Icons.shield}</div>
+            <h3>{t.captcha.title}</h3>
+            <p>{t.captcha.desc}</p>
+            <div className="intro-steps">
+              <div className="intro-step"><span className="step-n">1</span><span>{t.captcha.drag}</span></div>
+              <span className="step-arrow">→</span>
+              <div className="intro-step"><span className="step-n">2</span><span>{t.captcha.select}</span></div>
             </div>
+            <button className="captcha-btn" onClick={startPhaseA}>{t.captcha.begin}</button>
           </div>
         )}
         
-        {error && (
-          <div className="captcha-error">
-            <div className="error-icon">✕</div>
-            <h3>인증 실패</h3>
-            <p>{error}</p>
-            <button className="captcha-start-btn" onClick={onClose}>
-              닫기
-            </button>
+        {phase === 'phaseA' && (
+          <div className="captcha-phase-a">
+            <div className="phase-head"><span className="phase-tag">Phase A</span><span>{t.captcha.phase1}</span></div>
+            <canvas ref={canvasRef} className="phase-a-canvas" onMouseDown={handlePhaseAStart} onTouchStart={handlePhaseAStart} />
+            <div className="phase-hint">↓ {t.captcha.hint}</div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// 데모 선택 모달
-// ============================================
-function DemoSelector({ onSelectReal, onSelectDemo, onClose }) {
-  return (
-    <div className="captcha-overlay" onClick={onClose}>
-      <div className="captcha-modal selector-modal" onClick={e => e.stopPropagation()}>
-        <button className="captcha-close" onClick={onClose}>×</button>
         
-        <div className="captcha-logo">T:CURITY</div>
-        <h3 style={{ marginBottom: '0.5rem' }}>체험 모드 선택</h3>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-          원하는 체험 방식을 선택하세요
-        </p>
+        {phase === 'phaseB' && (
+          <div className="captcha-phase-b">
+            <div className="phase-head"><span className="phase-tag">Phase B</span><span>{t.captcha.questions[questionIndex]}</span></div>
+            <div className="diff-bar">
+              {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
+                <button key={key} className={`diff-btn ${difficulty === key ? 'active' : ''}`} style={{ '--c': config.color }} onClick={() => setDifficulty(key)}>{diffLabels[key]}</button>
+              ))}
+            </div>
+            <div className="img-grid">
+              {current.icons.map((_, index) => (
+                <div key={index} className={`img-cell ${droppedItems.includes(index) ? 'done' : ''} ${draggedItem === index ? 'dragging' : ''}`} onMouseDown={(e) => handlePhaseBDragStart(index, e)} onTouchStart={(e) => handlePhaseBDragStart(index, e)}>
+                  <canvas ref={el => imageCanvasRefs.current[index] = el} width="72" height="72" />
+                  {droppedItems.includes(index) && <span className="cell-check">✓</span>}
+                </div>
+              ))}
+            </div>
+            <div id="demo-drop-zone" className="drop-area">
+              {current.answers.map((_, i) => (
+                <div key={i} className={`drop-slot ${droppedItems[i] !== undefined ? 'filled' : ''}`}>
+                  {droppedItems[i] !== undefined ? (
+                    <svg width="36" height="36" viewBox="0 0 36 36">
+                      {current.icons[droppedItems[i]] === 'circle' && <circle cx="18" cy="18" r="12" fill="none" stroke="#FFE103" strokeWidth="2"/>}
+                      {current.icons[droppedItems[i]] === 'triangle' && <polygon points="18,6 30,28 6,28" fill="none" stroke="#FFE103" strokeWidth="2"/>}
+                      {current.icons[droppedItems[i]] === 'square' && <rect x="7" y="7" width="22" height="22" fill="none" stroke="#FFE103" strokeWidth="2"/>}
+                      {current.icons[droppedItems[i]] === 'diamond' && <polygon points="18,4 32,18 18,32 4,18" fill="none" stroke="#FFE103" strokeWidth="2"/>}
+                    </svg>
+                  ) : (
+                    <span className="slot-n">{i + 1}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="phase-foot"><span>{droppedItems.length}/{current.answers.length}</span><button className="reset-btn" onClick={() => setDroppedItems([])}>{t.captcha.reset}</button></div>
+          </div>
+        )}
         
-        <div className="selector-options">
-          <button className="selector-option" onClick={onSelectReal}>
-            <div className="option-icon">🔐</div>
-            <div className="option-content">
-              <strong>실제 인증</strong>
-              <span>실제 T:CURITY SDK로 인증</span>
-            </div>
-          </button>
-          
-          <button className="selector-option demo-option" onClick={onSelectDemo}>
-            <div className="option-icon">🎮</div>
-            <div className="option-content">
-              <strong>데모 체험</strong>
-              <span>인터랙티브 데모 체험</span>
-            </div>
-          </button>
+        {phase === 'success' && (
+          <div className="captcha-done">
+            <div className="done-icon">✓</div>
+            <h3>{t.captcha.verified}</h3>
+            <code>tc_{Math.random().toString(36).substr(2, 8)}</code>
+            <button className="captcha-btn" onClick={() => { onComplete?.(); setTimeout(onClose, 200); }}>{t.captcha.done}</button>
+          </div>
+        )}
+        
+        {draggedItem !== null && phase === 'phaseB' && <div className="drag-ghost" style={{ left: dragPosition.x - 24, top: dragPosition.y - 24 }}><canvas ref={el => { if(el) { el.width=48; el.height=48; const ctx=el.getContext('2d'); ctx.strokeStyle='#FFE103'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(24,24,16,0,Math.PI*2); ctx.stroke(); }}} /></div>}
+        
+        <div className="captcha-dots">
+          <span className={phase === 'intro' ? 'active' : phase !== 'intro' ? 'done' : ''} />
+          <span className={phase === 'phaseA' ? 'active' : ['phaseB', 'success'].includes(phase) ? 'done' : ''} />
+          <span className={phase === 'phaseB' ? 'active' : phase === 'success' ? 'done' : ''} />
+          <span className={phase === 'success' ? 'active done' : ''} />
         </div>
       </div>
     </div>
   );
 }
 
-// ============================================
-// 실제 SDK 호출 함수
-// ============================================
-async function runTCurityCaptcha(clientId = "cust_alpha") {
-  if (typeof window.TCuritySDK === 'undefined') {
-    throw new Error('T:CURITY SDK가 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
-  }
-  const sessionId = await window.TCuritySDK.captcha(clientId);
-  return sessionId;
-}
-
-// ============================================
-// 기존 컴포넌트들
-// ============================================
-
-function AnimatedBackground() {
+function DemoSelector({ onSelectReal, onSelectDemo, onClose, t }) {
   return (
-    <div className="animated-bg">
-      <div className="grid-lines"></div>
-      <div className="glow glow-1"></div>
-      <div className="glow glow-2"></div>
-      <div className="floating-shapes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`shape shape-${i + 1}`}></div>
-        ))}
+    <div className="captcha-overlay" onClick={onClose}>
+      <div className="captcha-modal selector" onClick={e => e.stopPropagation()}>
+        <button className="captcha-close" onClick={onClose}>×</button>
+        <div className="captcha-header"><div className="captcha-brand"><span>T:</span>CURITY</div></div>
+        <h3>{t.selector.title}</h3>
+        <div className="selector-btns">
+          <button className="sel-btn" onClick={onSelectReal}><span className="sel-icon">{Icons.lock}</span><strong>{t.selector.live}</strong><small>{t.selector.liveDesc}</small></button>
+          <button className="sel-btn demo" onClick={onSelectDemo}><span className="sel-icon">{Icons.play}</span><strong>{t.selector.demo}</strong><small>{t.selector.demoDesc}</small></button>
+        </div>
       </div>
     </div>
   );
 }
 
-function ThemeToggle({ isDark, onToggle }) {
+function CaptchaResult({ sessionId, error, onClose }) {
+  if (!sessionId && !error) return null;
   return (
-    <button className="theme-toggle" onClick={onToggle} aria-label="테마 변경">
-      {isDark ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="5"/>
-          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      )}
-    </button>
+    <div className="captcha-overlay" onClick={onClose}>
+      <div className="captcha-modal" onClick={e => e.stopPropagation()}>
+        <button className="captcha-close" onClick={onClose}>×</button>
+        {sessionId && <div className="captcha-done"><div className="done-icon">✓</div><h3>Verified</h3><code>{sessionId}</code></div>}
+        {error && <div className="captcha-error"><div className="err-icon">✕</div><h3>Failed</h3><p>{error}</p></div>}
+      </div>
+    </div>
   );
 }
 
-function Nav({ isDark, onThemeToggle, onPricingClick, onDashboardClick }) {
-  const [isOpen, setIsOpen] = useState(false);
+async function runTCurityCaptcha(clientId = "cust_alpha") {
+  if (typeof window.TCuritySDK === 'undefined') throw new Error('SDK not loaded');
+  return await window.TCuritySDK.captcha(clientId);
+}
 
-  const closeMenu = (callback) => {
-    setIsOpen(false);
-    if (callback) callback();
-  };
-
-  const menuStyle = {
-    position: 'fixed',
-    top: 0,
-    right: isOpen ? 0 : '-100%',
-    width: '280px',
-    height: '100vh',
-    background: 'var(--color-bg)',
-    borderLeft: '1px solid var(--color-border)',
-    padding: '5rem 2rem 2rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0',
-    transition: 'right 0.3s ease',
-    zIndex: 200,
-  };
-
-  const overlayStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    zIndex: 150,
-    display: isOpen ? 'block' : 'none',
-  };
-
-  const linkStyle = {
-    padding: '1rem 0',
-    borderBottom: '1px solid var(--color-border)',
-    color: 'var(--color-text-muted)',
-    textDecoration: 'none',
-    fontSize: '1rem',
-  };
+// ============================================
+// Nav
+// ============================================
+function Nav({ isDark, onThemeToggle, activeTab, setActiveTab, lang, setLang, t }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { const fn = () => setScrolled(window.scrollY > 40); window.addEventListener('scroll', fn); return () => window.removeEventListener('scroll', fn); }, []);
 
   return (
     <>
-      <nav className="nav">
-        <div className="nav-container">
-          <a href="#" className="nav-logo">
-            <span className="logo-t">T</span>
-            <span className="logo-colon">:</span>
-            <span className="logo-curity">CURITY</span>
-          </a>
-          
-          {/* 데스크톱 메뉴 */}
-          <div className="nav-links nav-desktop">
-            <a href="#features">기능</a>
-            <a href="#demo">데모</a>
-            <a href="#install">설치</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick(); }}>가격</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick(); }}>대시보드</a>
-            <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
+      <nav className={`nav ${scrolled ? 'scrolled' : ''}`}>
+        <div className="nav-inner">
+          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); setActiveTab('home'); }}><span className="logo-t">T</span><span className="logo-c">:</span><span className="logo-n">CURITY</span></a>
+          <div className="nav-links">
+            <a href="#" className={activeTab === 'home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('home'); }}>{t.nav.home}</a>
+            <a href="#" className={activeTab === 'pricing' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('pricing'); }}>{t.nav.pricing}</a>
+            <a href="#" className={activeTab === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}>{t.nav.dashboard}</a>
           </div>
-
-          {/* 햄버거 버튼 */}
-          <button 
-            className="nav-hamburger"
-            onClick={() => setIsOpen(!isOpen)}
-            style={{ display: 'none' }}
-          >
-            <span style={{ 
-              display: 'block', 
-              width: '24px', 
-              height: '2px', 
-              background: 'var(--color-text)',
-              transition: 'all 0.3s',
-              transform: isOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
-            }}></span>
-            <span style={{ 
-              display: 'block', 
-              width: '24px', 
-              height: '2px', 
-              background: 'var(--color-text)',
-              margin: '5px 0',
-              opacity: isOpen ? 0 : 1,
-              transition: 'all 0.3s'
-            }}></span>
-            <span style={{ 
-              display: 'block', 
-              width: '24px', 
-              height: '2px', 
-              background: 'var(--color-text)',
-              transition: 'all 0.3s',
-              transform: isOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
-            }}></span>
-          </button>
+          <div className="nav-right">
+            <button className="lang-btn" onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}>{lang === 'ko' ? 'EN' : '한국어'}</button>
+            <button className="icon-btn" onClick={onThemeToggle}>{isDark ? '☀️' : '🌙'}</button>
+            <a href="https://github.com/t-curity" target="_blank" rel="noopener noreferrer" className="icon-btn">{Icons.github}</a>
+          </div>
+          <button className="nav-toggle" onClick={() => setOpen(!open)}><span className={open ? 'open' : ''} /></button>
         </div>
       </nav>
-
-      {/* 오버레이 */}
-      <div style={overlayStyle} onClick={() => setIsOpen(false)} />
-      
-      {/* 모바일 메뉴 */}
-      <div className="nav-mobile-menu" style={menuStyle}>
-        <a href="#features" style={linkStyle} onClick={() => closeMenu()}>기능</a>
-        <a href="#demo" style={linkStyle} onClick={() => closeMenu()}>데모</a>
-        <a href="#install" style={linkStyle} onClick={() => closeMenu()}>설치</a>
-        <a href="#" style={linkStyle} onClick={(e) => { e.preventDefault(); closeMenu(onPricingClick); }}>가격</a>
-        <a href="#" style={linkStyle} onClick={(e) => { e.preventDefault(); closeMenu(onDashboardClick); }}>대시보드</a>
-        <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer" style={linkStyle} onClick={() => closeMenu()}>GitHub</a>
-        <div style={{ marginTop: '1rem' }}>
-          <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
-        </div>
+      <div className={`mobile-nav ${open ? 'open' : ''}`}>
+        <a href="#" className={activeTab === 'home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('home'); setOpen(false); }}>{t.nav.home}</a>
+        <a href="#" className={activeTab === 'pricing' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('pricing'); setOpen(false); }}>{t.nav.pricing}</a>
+        <a href="#" className={activeTab === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); setOpen(false); }}>{t.nav.dashboard}</a>
+        <button className="lang-btn mobile" onClick={() => { setLang(lang === 'ko' ? 'en' : 'ko'); setOpen(false); }}>{lang === 'ko' ? 'EN' : '한국어'}</button>
       </div>
+      {open && <div className="nav-overlay" onClick={() => setOpen(false)} />}
     </>
   );
 }
 
-function Hero({ onDemoClick }) {
+// ============================================
+// Home Sections
+// ============================================
+function Hero({ onDemoClick, t }) {
   return (
     <section className="hero">
-      <AnimatedBackground />
-      <div className="hero-content">
-        <h1 className="hero-title">
-          <span className="title-line">봇은 막고,</span>
-          <span className="title-line highlight">사람은 통과</span>
-        </h1>
-        <p className="hero-desc">
-          행동 패턴 분석과 이미지 인식을 결합한<br />
-          <strong>2-Phase 검증</strong>으로 99.7%의 봇 탐지율
-        </p>
-        <div className="hero-actions">
-          <button className="btn btn-primary" onClick={onDemoClick}>
-            <span>지금 체험하기</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
-          <a href="#install" className="btn btn-secondary">
-            설치 가이드
-          </a>
+      <div className="hero-bg"><div className="hero-grad" /><div className="hero-grid" /></div>
+      <div className="hero-inner">
+        <div className="hero-badge animate-on-scroll"><span className="badge-pulse" />{t.hero.badge}</div>
+        <h1 className="animate-on-scroll delay-1">{t.hero.title1}<br/><span>{t.hero.title2}</span></h1>
+        <p className="animate-on-scroll delay-2">{t.hero.desc}</p>
+        <div className="hero-btns animate-on-scroll delay-3">
+          <button className="btn primary" onClick={onDemoClick}>{t.hero.tryDemo} →</button>
+          <a href="#install" className="btn ghost">{t.hero.docs}</a>
         </div>
-        <div className="hero-stats">
-          <div className="stat">
-            <span className="stat-value">99.7%</span>
-            <span className="stat-label">봇 탐지율</span>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat">
-            <span className="stat-value">&lt;2s</span>
-            <span className="stat-label">평균 인증 시간</span>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat">
-            <span className="stat-value">2-Phase</span>
-            <span className="stat-label">이중 검증</span>
-          </div>
+        <div className="hero-stats animate-on-scroll delay-4">
+          <div className="stat"><strong>99.7%</strong><span>{t.hero.stat1}</span></div>
+          <div className="stat-sep" />
+          <div className="stat"><strong>&lt;2s</strong><span>{t.hero.stat2}</span></div>
+          <div className="stat-sep" />
+          <div className="stat"><strong>2-Phase</strong><span>{t.hero.stat3}</span></div>
         </div>
       </div>
     </section>
   );
 }
 
-function Features() {
-  const features = [
-    {
-      icon: '🎯',
-      title: 'Phase 1: 행동 분석',
-      desc: 'Isolation Forest 알고리즘으로 마우스 궤적, 속도, 압력 등 행동 패턴을 실시간 분석하여 봇을 1차 필터링합니다.',
-      badge: 'Isolation Forest'
-    },
-    {
-      icon: '🧠',
-      title: 'Phase 2: 이미지 인식',
-      desc: 'Random Forest 기반 이미지 분류 문제로 2차 검증을 수행합니다. 봇이 우회하기 어려운 시각적 판단을 요구합니다.',
-      badge: 'Random Forest'
-    },
-    {
-      icon: '🔐',
-      title: 'S2S 서버 검증',
-      desc: '프론트엔드를 신뢰하지 않는 구조. 발급된 session_id는 반드시 서버 간 통신으로 검증되어 우회를 원천 차단합니다.',
-      badge: 'Zero Trust'
-    },
-    {
-      icon: '⚡',
-      title: 'Rate Limiting',
-      desc: 'IP 기반 지능형 요청 제한으로 무차별 대입 공격을 방어하고 서버 자원을 보호합니다.',
-      badge: 'DDoS Protection'
-    }
-  ];
-
+function Features({ t }) {
+  const icons = [Icons.chart, Icons.image, Icons.shield, Icons.zap];
   return (
     <section id="features" className="features">
-      <div className="section-container">
-        <div className="section-header">
-          <span className="section-badge">Features</span>
-          <h2 className="section-title">왜 T:CURITY인가?</h2>
-          <p className="section-desc">
-            단순한 체크박스가 아닙니다.<br />
-            다층 검증으로 진짜 보안을 제공합니다.
-          </p>
-        </div>
-        <div className="features-grid">
-          {features.map((feature, index) => (
-            <div key={index} className="feature-card">
-              <div className="feature-icon">{feature.icon}</div>
-              <span className="feature-badge">{feature.badge}</span>
-              <h3 className="feature-title">{feature.title}</h3>
-              <p className="feature-desc">{feature.desc}</p>
+      <div className="container">
+        <div className="sec-head animate-on-scroll"><span className="sec-tag">Features</span><h2>{t.features.title}</h2><p>{t.features.desc}</p></div>
+        <div className="feat-grid">
+          {t.features.items.map((f, i) => (
+            <div key={i} className={`feat-card animate-on-scroll delay-${i + 1}`}>
+              <div className="feat-icon">{icons[i]}</div>
+              <span className="feat-tag">{f.tag}</span>
+              <h3>{f.title}</h3>
+              <p>{f.text}</p>
             </div>
           ))}
         </div>
@@ -881,72 +680,29 @@ function Features() {
   );
 }
 
-function DemoSection({ onDemoClick }) {
+function DemoSection({ onDemoClick, t }) {
   return (
-    <section id="demo" className="demo-section">
-      <div className="section-container">
-        <div className="demo-content">
-          <div className="demo-text">
-            <span className="section-badge">Live Demo</span>
-            <h2 className="section-title">직접 체험해보세요</h2>
-            <p className="section-desc">
-              2단계 인증이 어떻게 작동하는지<br />
-              실제로 경험해볼 수 있습니다.
-            </p>
-            <div className="demo-steps">
-              <div className="demo-step">
-                <div className="step-number">1</div>
-                <div className="step-content">
-                  <strong>Phase A</strong>
-                  <span>가이드라인을 따라 선 긋기</span>
-                </div>
-              </div>
-              <div className="demo-step">
-                <div className="step-number">2</div>
-                <div className="step-content">
-                  <strong>Phase B</strong>
-                  <span>올바른 이미지 선택하기</span>
-                </div>
-              </div>
-              <div className="demo-step">
-                <div className="step-number">✓</div>
-                <div className="step-content">
-                  <strong>검증 완료</strong>
-                  <span>session_id 발급</span>
-                </div>
-              </div>
+    <section id="demo" className="demo-sec">
+      <div className="container">
+        <div className="demo-wrap">
+          <div className="demo-info">
+            <span className="sec-tag animate-on-scroll">Live Demo</span>
+            <h2 className="animate-on-scroll delay-1">{t.demo.title}</h2>
+            <p className="animate-on-scroll delay-2">{t.demo.desc}</p>
+            <div className="demo-steps animate-on-scroll delay-3">
+              <div className="d-step"><span className="d-num">01</span><div><strong>Phase A</strong><span>{t.demo.phase1}</span></div></div>
+              <div className="d-step"><span className="d-num">02</span><div><strong>Phase B</strong><span>{t.demo.phase2}</span></div></div>
             </div>
+            <button className="btn primary animate-on-scroll delay-4" onClick={onDemoClick}>{t.demo.launch} →</button>
           </div>
-          <div className="demo-preview">
-            <div className="preview-window">
-              <div className="preview-header">
-                <div className="preview-dots">
-                  <span></span><span></span><span></span>
-                </div>
-                <span className="preview-url">tcurity.com/demo</span>
-              </div>
-              <div className="preview-content">
-                <div className="preview-captcha">
-                  <div className="preview-logo">T:CURITY</div>
-                  <div className="preview-phases">
-                    <div className="preview-phase active">
-                      <div className="phase-icon">✏️</div>
-                      <span>Phase 1</span>
-                    </div>
-                    <div className="preview-arrow">→</div>
-                    <div className="preview-phase">
-                      <div className="phase-icon">🖼️</div>
-                      <span>Phase 2</span>
-                    </div>
-                    <div className="preview-arrow">→</div>
-                    <div className="preview-phase">
-                      <div className="phase-icon">✓</div>
-                      <span>완료</span>
-                    </div>
-                  </div>
-                  <button className="preview-btn" onClick={onDemoClick}>
-                    체험하기
-                  </button>
+          <div className="demo-preview animate-on-scroll slide-left">
+            <div className="preview-card">
+              <div className="preview-header"><span /><span /><span /></div>
+              <div className="preview-body">
+                <div className="preview-flow">
+                  <div className="pf-item"><span>Phase 1</span><div className="pf-line" /></div>
+                  <span className="pf-arrow">→</span>
+                  <div className="pf-item"><span>Phase 2</span><div className="pf-grid"><span>{Icons.dog}</span><span>{Icons.car}</span><span>{Icons.apple}</span></div></div>
                 </div>
               </div>
             </div>
@@ -957,100 +713,211 @@ function DemoSection({ onDemoClick }) {
   );
 }
 
-function InstallSection() {
-  const [copied, setCopied] = useState(false);
-  
-  const scriptCode = `<script src="https://sdk.tcurity.com/sdk.js"></script>`;
-  const usageCode = `<script>
-  async function verifyCaptcha() {
-    try {
-      const sessionId = await TCuritySDK.captcha("YOUR_CLIENT_ID");
-      
-      // 서버로 sessionId 전송하여 S2S 검증
-      const response = await fetch('/api/verify', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId })
-      });
-      
-      if (response.ok) {
-        console.log('✓ 인증 성공!');
-      }
-    } catch (error) {
-      console.error('인증 실패:', error);
-    }
-  }
-</script>`;
+function InstallSection({ t }) {
+  const [copied, setCopied] = useState(null);
+  const copy = (txt, id) => { navigator.clipboard.writeText(txt); setCopied(id); setTimeout(() => setCopied(null), 1500); };
+  const codes = {
+    script: '<script src="https://tcurity.com/sdk.js"></script>',
+    init: 'const sessionId = await TCuritySDK.captcha("client-id");',
+    backend: 'response = requests.post(\n  "https://tcurity.com/api/v1/session/verify",\n  headers={"X-Client-Id": "...", "X-Client-Secret-Key": "..."},\n  json={"session_id": session_id}\n)'
+  };
+  return (
+    <section id="install" className="install">
+      <div className="container">
+        <div className="sec-head animate-on-scroll"><span className="sec-tag">Quick Start</span><h2>{t.install.title}</h2><p>{t.install.desc}</p></div>
+        <div className="install-steps">
+          <div className="i-step animate-on-scroll delay-1">
+            <div className="i-head"><span>1</span>{t.install.step1}</div>
+            <div className="code-block"><div className="code-top"><span>HTML</span><button onClick={() => copy(codes.script, 's1')}>{copied === 's1' ? 'Copied!' : 'Copy'}</button></div><pre>{codes.script}</pre></div>
+          </div>
+          <div className="i-step animate-on-scroll delay-2">
+            <div className="i-head"><span>2</span>{t.install.step2}</div>
+            <div className="code-block"><div className="code-top"><span>JavaScript</span><button onClick={() => copy(codes.init, 's2')}>{copied === 's2' ? 'Copied!' : 'Copy'}</button></div><pre>{codes.init}</pre></div>
+          </div>
+          <div className="i-step animate-on-scroll delay-3">
+            <div className="i-head"><span>3</span>{t.install.step3}</div>
+            <div className="code-block"><div className="code-top"><span>Python</span><button onClick={() => copy(codes.backend, 's3')}>{copied === 's3' ? 'Copied!' : 'Copy'}</button></div><pre>{codes.backend}</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-  const handleCopy = (code) => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+// ============================================
+// Pricing Section
+// ============================================
+const planPrices = [
+  { monthly: 0, annual: 0 },
+  { monthly: 49000, annual: 39000 },
+  { monthly: 149000, annual: 119000 },
+  { monthly: null, annual: null },
+];
+
+function PricingSection({ t, lang }) {
+  const [isAnnual, setIsAnnual] = useState(true);
+  const formatPrice = (price) => {
+    if (price === null) return t.pricing.negotiate;
+    if (price === 0) return '₩0';
+    return `₩${price.toLocaleString()}`;
   };
 
   return (
-    <section id="install" className="install-section">
-      <div className="section-container">
-        <div className="section-header">
-          <span className="section-badge">Installation</span>
-          <h2 className="section-title">한 줄로 시작하기</h2>
-          <p className="section-desc">
-            복잡한 설정 없이 스크립트 한 줄이면 끝
-          </p>
+    <section className="pricing-section">
+      <div className="container">
+        <div className="sec-head animate-on-scroll">
+          <span className="sec-tag">Pricing</span>
+          <h2>{t.pricing.title}</h2>
+          <p>{t.pricing.desc}</p>
         </div>
         
-        <div className="install-steps">
-          <div className="install-step">
-            <div className="install-step-header">
-              <span className="install-step-num">1</span>
-              <span className="install-step-title">SDK 로드</span>
+        <div className="billing-toggle animate-on-scroll delay-1">
+          <span className={!isAnnual ? 'active' : ''}>{t.pricing.monthly}</span>
+          <button className={`toggle-switch ${isAnnual ? 'annual' : ''}`} onClick={() => setIsAnnual(!isAnnual)}><div className="toggle-thumb" /></button>
+          <span className={isAnnual ? 'active' : ''}>{t.pricing.annual}<span className="discount-badge">{t.pricing.discount}</span></span>
+        </div>
+        
+        <div className="pricing-cards animate-on-scroll delay-2">
+          {t.pricing.plans.map((plan, idx) => (
+            <div key={idx} className={`pricing-card ${idx === 2 ? 'popular' : ''}`}>
+              {idx === 2 && <div className="popular-badge">{t.pricing.popular}</div>}
+              <div className="card-header"><h3>{plan.name}</h3><p>{plan.desc}</p></div>
+              <div className="card-price">
+                <span className="price">{formatPrice(isAnnual ? planPrices[idx].annual : planPrices[idx].monthly)}</span>
+                {planPrices[idx].monthly !== null && <span className="period">{t.pricing.perMonth}</span>}
+                {isAnnual && planPrices[idx].monthly > 0 && <span className="original-price">{formatPrice(planPrices[idx].monthly)}{t.pricing.perMonth}</span>}
+                <span className="requests">{plan.requests} {t.pricing.requests}{t.pricing.perMonth}</span>
+                <span className="concurrent">{t.pricing.concurrent}: {plan.concurrent}</span>
+              </div>
+              <button className={`card-cta ${idx === 2 ? 'primary' : ''}`}>{plan.cta}</button>
+              <ul className="card-features">
+                {plan.features.map((f, i) => <li key={i} className="feature"><span className="check">✓</span>{f}</li>)}
+                {plan.limitations.map((l, i) => <li key={i} className="limitation"><span className="x">✗</span>{l}</li>)}
+              </ul>
             </div>
-            <div className="code-block">
-              <code>{scriptCode}</code>
-              <button 
-                className="copy-btn"
-                onClick={() => handleCopy(scriptCode)}
-              >
-                {copied ? '✓ 복사됨' : '복사'}
-              </button>
-            </div>
+          ))}
+        </div>
+        
+        <div className="competitor-section animate-on-scroll delay-3">
+          <h3>{t.pricing.compare}</h3>
+          <div className="comparison-table-wrapper">
+            <table className="comparison-table">
+              <thead><tr>{t.pricing.competitor.headers.map((h, i) => <th key={i} className={i === 3 ? 'highlight' : ''}>{h}</th>)}</tr></thead>
+              <tbody>
+                {t.pricing.competitor.rows.map((row, idx) => (
+                  <tr key={idx}>{row.map((cell, i) => <td key={i} className={i === 3 ? 'highlight' : ''}>{cell === '✓' ? <span className="check">✓</span> : cell === '—' ? <span className="dash">—</span> : cell}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          
-          <div className="install-step">
-            <div className="install-step-header">
-              <span className="install-step-num">2</span>
-              <span className="install-step-title">CAPTCHA 실행</span>
-            </div>
-            <div className="code-block large">
-              <pre><code>{usageCode}</code></pre>
-              <button 
-                className="copy-btn"
-                onClick={() => handleCopy(usageCode)}
-              >
-                {copied ? '✓ 복사됨' : '복사'}
-              </button>
-            </div>
+          <p className="comparison-note">{t.pricing.compareNote}</p>
+        </div>
+        
+        <div className="pricing-cta animate-on-scroll delay-4">
+          <h3>{t.pricing.cta}</h3>
+          <p>{t.pricing.ctaDesc}</p>
+          <div className="cta-buttons">
+            <button className="btn primary">{t.pricing.start}</button>
+            <button className="btn ghost">{t.pricing.contact}</button>
           </div>
-          
-          <div className="install-step">
-            <div className="install-step-header">
-              <span className="install-step-num">3</span>
-              <span className="install-step-title">서버에서 S2S 검증</span>
-            </div>
-            <div className="s2s-flow">
-              <div className="flow-item">
-                <span className="flow-icon">🌐</span>
-                <span>Browser</span>
-              </div>
-              <div className="flow-arrow">→</div>
-              <div className="flow-item">
-                <span className="flow-icon">🖥️</span>
-                <span>Your Server</span>
-              </div>
-              <div className="flow-arrow">→</div>
-              <div className="flow-item highlight">
-                <span className="flow-icon">🔐</span>
-                <span>T:CURITY API</span>
-              </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// Dashboard Section
+// ============================================
+function Sparkline({ data, height = 32 }) {
+  const max = Math.max(...data);
+  const points = data.map((v, i) => `${(i / (data.length - 1)) * 100},${100 - (v / max) * 100}`).join(' ');
+  return <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height }}><polyline fill="none" stroke="var(--primary)" strokeWidth="2" points={points} /></svg>;
+}
+
+function DashboardSection({ t }) {
+  const [data, setData] = useState(null);
+  
+  useEffect(() => {
+    const gen = () => ({
+      hours: Array.from({ length: 24 }, () => ({ req: Math.floor(Math.random() * 4000) + 800, block: Math.floor(Math.random() * 400) + 40 })),
+      countries: [
+        { name: 'South Korea', code: 'KR', req: 45230, block: 2341 },
+        { name: 'United States', code: 'US', req: 12450, block: 892 },
+        { name: 'China', code: 'CN', req: 8920, block: 4521 },
+        { name: 'Japan', code: 'JP', req: 6780, block: 234 },
+        { name: 'Vietnam', code: 'VN', req: 3450, block: 1823 },
+      ],
+      logs: [
+        { id: 1, type: 'block', ip: '192.168.1.xxx', msg: 'Bot detected', t: '2m' },
+        { id: 2, type: 'pass', ip: '10.0.0.xxx', msg: 'Verified', t: '3m' },
+        { id: 3, type: 'block', ip: '172.16.0.xxx', msg: 'Rate exceeded', t: '5m' },
+        { id: 4, type: 'pass', ip: '192.168.2.xxx', msg: 'Verified', t: '6m' },
+        { id: 5, type: 'block', ip: '10.1.1.xxx', msg: 'Abnormal pattern', t: '8m' },
+      ]
+    });
+    setData(gen());
+    const id = setInterval(() => setData(gen()), 5000);
+    return () => clearInterval(id);
+  }, []);
+  
+  if (!data) return null;
+  const stats = { requests: 78432, blocked: 4521, rate: 94.2, latency: 312 };
+
+  return (
+    <section className="dashboard-section">
+      <div className="container">
+        <div className="sec-head animate-on-scroll">
+          <span className="sec-tag">Dashboard</span>
+          <h2>{t.dashboard.title}</h2>
+          <p>{t.dashboard.desc}</p>
+        </div>
+        
+        <div className="dash-stats animate-on-scroll delay-1">
+          <div className="dash-stat">
+            <div className="dash-stat-icon">{Icons.activity}</div>
+            <div className="dash-stat-info"><span className="dash-stat-value">{stats.requests.toLocaleString()}</span><span className="dash-stat-label">{t.dashboard.requests}</span></div>
+            <Sparkline data={data.hours.map(h => h.req)} />
+          </div>
+          <div className="dash-stat">
+            <div className="dash-stat-icon">{Icons.shield}</div>
+            <div className="dash-stat-info"><span className="dash-stat-value">{stats.blocked.toLocaleString()}</span><span className="dash-stat-label">{t.dashboard.blocked}</span></div>
+            <Sparkline data={data.hours.map(h => h.block)} />
+          </div>
+          <div className="dash-stat">
+            <div className="dash-stat-icon">{Icons.check}</div>
+            <div className="dash-stat-info"><span className="dash-stat-value">{stats.rate}%</span><span className="dash-stat-label">{t.dashboard.rate}</span></div>
+            <div className="progress-bar"><div className="progress-fill" style={{ width: `${stats.rate}%` }} /></div>
+          </div>
+          <div className="dash-stat">
+            <div className="dash-stat-icon">{Icons.zap}</div>
+            <div className="dash-stat-info"><span className="dash-stat-value">{stats.latency}ms</span><span className="dash-stat-label">{t.dashboard.latency}</span></div>
+            <div className="health-indicator"><span className="health-dot" /> {t.dashboard.healthy}</div>
+          </div>
+        </div>
+        
+        <div className="dash-panels animate-on-scroll delay-2">
+          <div className="dash-panel">
+            <h4><span className="panel-icon">{Icons.globe}</span>{t.dashboard.region}</h4>
+            <table className="dash-table">
+              <thead><tr><th>{t.dashboard.country}</th><th>{t.dashboard.requests}</th><th>{t.dashboard.blocked}</th></tr></thead>
+              <tbody>
+                {data.countries.map((c, i) => (
+                  <tr key={i}><td><span className="country-code">{c.code}</span>{c.name}</td><td>{c.req.toLocaleString()}</td><td>{c.block.toLocaleString()}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="dash-panel">
+            <h4><span className="panel-icon">{Icons.activity}</span>{t.dashboard.activity}</h4>
+            <div className="dash-logs">
+              {data.logs.map(log => (
+                <div key={log.id} className={`dash-log ${log.type}`}>
+                  <span className="log-icon">{log.type === 'pass' ? '✓' : '✗'}</span>
+                  <div className="log-info"><span className="log-ip">{log.ip}</span><span className="log-msg">{log.msg}</span></div>
+                  <span className="log-time">{log.t}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1059,50 +926,16 @@ function InstallSection() {
   );
 }
 
-function Footer({ onPricingClick, onDashboardClick }) {
+// ============================================
+// Footer
+// ============================================
+function Footer({ t }) {
   return (
     <footer className="footer">
-      <div className="footer-container">
-        <div className="footer-top">
-          <div className="footer-brand">
-            <span className="footer-logo">
-              <span style={{color: 'var(--color-primary)'}}>T</span>
-              <span style={{color: 'var(--color-primary)'}}>:</span>
-              CURITY
-            </span>
-            <p>AI 시대의 차세대 CAPTCHA 보안 솔루션</p>
-          </div>
-          
-          <div className="footer-nav">
-            <div className="footer-col">
-              <h4>제품</h4>
-              <a href="#features">기능</a>
-              <a href="#demo">데모</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); onPricingClick?.(); }}>가격</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); onDashboardClick?.(); }}>대시보드</a>
-            </div>
-            <div className="footer-col">
-              <h4>개발자</h4>
-              <a href="#install">설치 가이드</a>
-              <a href="https://github.com/tcurity" target="_blank" rel="noopener noreferrer">GitHub</a>
-              <a href="https://github.com/tcurity/docs" target="_blank" rel="noopener noreferrer">API 문서</a>
-            </div>
-            <div className="footer-col">
-              <h4>팀</h4>
-              <a href="#">T:CURITOR 소개</a>
-              <a href="mailto:contact@tcurity.com">문의하기</a>
-            </div>
-          </div>
-        </div>
-        
-        <div className="footer-bottom">
-          <div className="footer-copyright">
-            © 2025 T:CURITY. Built by T:CURITOR Team.
-          </div>
-          <div className="footer-legal">
-            <a href="#">이용약관</a>
-            <a href="#">개인정보처리방침</a>
-          </div>
+      <div className="container">
+        <div className="footer-inner">
+          <div className="footer-brand"><span className="logo-t">T</span><span className="logo-c">:</span><span className="logo-n">CURITY</span></div>
+          <div className="footer-copy">{t.footer.copyright}</div>
         </div>
       </div>
     </footer>
@@ -1110,131 +943,49 @@ function Footer({ onPricingClick, onDashboardClick }) {
 }
 
 // ============================================
-// Main App
+// App
 // ============================================
-function App() {
+export default function App() {
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState('ko');
+  const [activeTab, setActiveTab] = useState('home');
   const [showSelector, setShowSelector] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
-  const [showPricing, setShowPricing] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
   const [showResult, setShowResult] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
 
-  const handleDemoClick = () => {
-    setShowSelector(true);
-  };
+  const t = translations[lang];
+  useScrollAnimation(activeTab);
 
+  useEffect(() => { document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light'); }, [isDark]);
+
+  const handleDemoClick = () => setShowSelector(true);
   const handleSelectReal = async () => {
     setShowSelector(false);
-    try {
-      const sessionId = await runTCurityCaptcha("cust_alpha");
-      setCaptchaResult({ sessionId, error: null });
-      setShowResult(true);
-    } catch (err) {
-      if (err.message !== 'CAPTCHA_CANCELLED') {
-        setCaptchaResult({ sessionId: null, error: err.message });
-        setShowResult(true);
-      }
-    }
+    try { const sessionId = await runTCurityCaptcha(); setCaptchaResult({ sessionId, error: null }); setShowResult(true); }
+    catch (err) { setCaptchaResult({ sessionId: null, error: err.message }); setShowResult(true); }
   };
-
-  const handleSelectDemo = () => {
-    setShowSelector(false);
-    setShowDemo(true);
-  };
-
-  const handleCloseResult = () => {
-    setShowResult(false);
-    setCaptchaResult({ sessionId: null, error: null });
-  };
-
-  const handleThemeToggle = () => {
-    setIsDarkTheme(!isDarkTheme);
-  };
-
-  // Admin Dashboard 표시
-  if (showDashboard) {
-    return (
-      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-        <nav className="nav">
-          <div className="nav-container">
-            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>
-              <span className="logo-t">T</span>
-              <span className="logo-colon">:</span>
-              <span className="logo-curity">CURITY</span>
-            </a>
-            <div className="nav-simple">
-              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowDashboard(false); }}>← 홈으로</a>
-              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
-            </div>
-          </div>
-        </nav>
-        <AdminDashboard onBack={() => setShowDashboard(false)} />
-      </div>
-    );
-  }
-
-  // Pricing 페이지 표시
-  if (showPricing) {
-    return (
-      <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-        <nav className="nav">
-          <div className="nav-container">
-            <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>
-              <span className="logo-t">T</span>
-              <span className="logo-colon">:</span>
-              <span className="logo-curity">CURITY</span>
-            </a>
-            <div className="nav-simple">
-              <a href="#" className="back-link" onClick={(e) => { e.preventDefault(); setShowPricing(false); }}>← 홈으로</a>
-              <ThemeToggle isDark={isDarkTheme} onToggle={handleThemeToggle} />
-            </div>
-          </div>
-        </nav>
-        <PricingPage onBack={() => setShowPricing(false)} />
-      </div>
-    );
-  }
+  const handleSelectDemo = () => { setShowSelector(false); setShowDemo(true); };
 
   return (
-    <div className={`app ${isDarkTheme ? 'theme-dark' : 'theme-light'}`}>
-      <Nav 
-        isDark={isDarkTheme} 
-        onThemeToggle={handleThemeToggle} 
-        onPricingClick={() => setShowPricing(true)} 
-        onDashboardClick={() => setShowDashboard(true)}
-      />
-      <Hero onDemoClick={handleDemoClick} />
-      <Features />
-      <DemoSection onDemoClick={handleDemoClick} />
-      <InstallSection />
-      <Footer onPricingClick={() => setShowPricing(true)} onDashboardClick={() => setShowDashboard(true)} />
-      
-      {showSelector && (
-        <DemoSelector 
-          onSelectReal={handleSelectReal}
-          onSelectDemo={handleSelectDemo}
-          onClose={() => setShowSelector(false)}
-        />
-      )}
-      
-      {showDemo && (
-        <DemoCaptcha 
-          onClose={() => setShowDemo(false)}
-          onComplete={() => setShowDemo(false)}
-        />
-      )}
-      
-      {showResult && (
-        <CaptchaResult 
-          sessionId={captchaResult.sessionId}
-          error={captchaResult.error}
-          onClose={handleCloseResult}
-        />
-      )}
+    <div className="app">
+      <Nav isDark={isDark} onThemeToggle={() => setIsDark(!isDark)} activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} t={t} />
+      <main>
+        {activeTab === 'home' && (
+          <>
+            <Hero onDemoClick={handleDemoClick} t={t} />
+            <Features t={t} />
+            <DemoSection onDemoClick={handleDemoClick} t={t} />
+            <InstallSection t={t} />
+          </>
+        )}
+        {activeTab === 'pricing' && <PricingSection t={t} lang={lang} />}
+        {activeTab === 'dashboard' && <DashboardSection t={t} />}
+      </main>
+      <Footer t={t} />
+      {showSelector && <DemoSelector onSelectReal={handleSelectReal} onSelectDemo={handleSelectDemo} onClose={() => setShowSelector(false)} t={t} />}
+      {showDemo && <DemoCaptcha onClose={() => setShowDemo(false)} onComplete={() => setShowDemo(false)} t={t} />}
+      {showResult && <CaptchaResult sessionId={captchaResult.sessionId} error={captchaResult.error} onClose={() => setShowResult(false)} />}
     </div>
   );
 }
-
-export default App;
