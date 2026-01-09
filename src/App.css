@@ -3310,3 +3310,104 @@ code {
     padding: 0.5rem 0.75rem;
   }
 }
+
+/* ============================================
+   난이도 선택 & 4칸 슬롯 스타일
+   ============================================ */
+
+.difficulty-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.difficulty-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-right: 0.5rem;
+}
+
+.difficulty-btn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.difficulty-btn:hover {
+  border-color: var(--btn-color, #666);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.difficulty-btn.active {
+  color: var(--btn-color);
+  font-weight: 600;
+}
+
+.difficulty-info {
+  text-align: center;
+  font-size: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+/* 4칸 슬롯 드롭존 */
+.drop-zone-slots {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem !important;
+  min-height: auto !important;
+}
+
+.drop-slot {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.drop-slot.filled {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: rgba(255, 214, 0, 0.1);
+}
+
+.slot-number {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.slot-emoji {
+  font-size: 1.8rem;
+}
+
+/* 드롭존 hover 효과 */
+.drop-zone-slots:hover .drop-slot:not(.filled) {
+  border-color: rgba(255, 214, 0, 0.4);
+}
+
+/* 난이도 파라미터 표시 */
+.difficulty-desc {
+  margin-bottom: 0.25rem;
+}
+
+.difficulty-params {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  font-family: monospace;
+}

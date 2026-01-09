@@ -7,27 +7,58 @@ import AdminDashboard from './AdminDashboard';
 // 데모용 CAPTCHA 컴포넌트 (Mock)
 // ============================================
 
-// 샘플 이미지 데이터
+// 샘플 이미지 데이터 (정답 4개로 통일)
 const DEMO_QUESTIONS = [
   {
-    question: '🐕 강아지를 모두 찾아 드래그하세요',
-    images: ['🐕', '🚗', '🍕', '🎸', '🐕', '🏠', '⚽', '🎨', '🐕'],
-    answers: [0, 4, 8],
-    answerCount: 3,
+    question: '🐕 강아지를 모두 찾아 순서대로 드래그하세요',
+    images: ['🐕', '🚗', '🍕', '🐕', '🎸', '🐕', '🏠', '⚽', '🐕'],
+    answers: [0, 3, 5, 8],
+    answerCount: 4,
   },
   {
-    question: '🍎 과일을 모두 찾아 드래그하세요',
+    question: '🍎 과일을 모두 찾아 순서대로 드래그하세요',
     images: ['🍎', '🚀', '🍊', '💎', '🍇', '🔥', '⭐', '🍌', '🌙'],
     answers: [0, 2, 4, 7],
     answerCount: 4,
   },
   {
-    question: '🚗 탈것을 모두 찾아 드래그하세요',
+    question: '🚗 탈것을 모두 찾아 순서대로 드래그하세요',
     images: ['🚗', '🌸', '✈️', '🎵', '🚢', '🍰', '🚲', '📱', '🎭'],
     answers: [0, 2, 4, 6],
     answerCount: 4,
   },
 ];
+
+// 난이도별 노이즈 설정 (백엔드 image_tools.py 기준)
+// NORMAL: 노이즈 없음
+// MEDIUM: base_noise=10, color_shift=5, brightness_range=0.1
+// HIGH: base_noise=25, color_shift=15, brightness_range=0.2
+const DIFFICULTY_CONFIG = {
+  NORMAL: { 
+    label: '쉬움', 
+    noiseLevel: 0, 
+    colorShift: 0, 
+    brightnessRange: 0,
+    color: '#4ade80',
+    desc: '노이즈 없음 - Phase 1에서 확실한 사람으로 판정'
+  },
+  MEDIUM: { 
+    label: '보통', 
+    noiseLevel: 10, 
+    colorShift: 5, 
+    brightnessRange: 0.1,
+    color: '#fbbf24',
+    desc: '약한 노이즈 - Phase 1에서 애매한 행동 패턴 감지'
+  },
+  HIGH: { 
+    label: '어려움', 
+    noiseLevel: 25, 
+    colorShift: 15, 
+    brightnessRange: 0.2,
+    color: '#ef4444',
+    desc: '강한 노이즈 - Phase 1에서 봇에 가까운 행동 감지'
+  },
+};
 
 // ============================================
 // 데모 CAPTCHA 컴포넌트
@@ -41,6 +72,7 @@ function DemoCaptcha({ onClose, onComplete }) {
   const [droppedItems, setDroppedItems] = useState([]);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [difficulty, setDifficulty] = useState('NORMAL');
   const animationRef = useRef(null);
   const frameCountRef = useRef(0);
   
@@ -192,9 +224,12 @@ function DemoCaptcha({ onClose, onComplete }) {
     setPhase('phaseB');
   };
 
-  // Phase B 이미지 그리기
+  // Phase B 이미지 그리기 (백엔드와 동일한 노이즈 적용)
   useEffect(() => {
     if (phase !== 'phaseB' || !currentQuestion) return;
+    
+    const config = DIFFICULTY_CONFIG[difficulty];
+    const { noiseLevel, colorShift, brightnessRange } = config;
     
     currentQuestion.images.forEach((emoji, idx) => {
       const canvas = imageCanvasRefs.current[idx];
@@ -214,8 +249,53 @@ function DemoCaptcha({ onClose, onComplete }) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(emoji, size / 2, size / 2);
+      
+      // 노이즈 적용 (NORMAL이 아닐 때) - 백엔드 image_tools.py와 동일
+      if (noiseLevel > 0) {
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        
+        // 채널별 색상 왜곡 값 (백엔드: random.randint(-color_shift, color_shift))
+        const rShift = (Math.random() * 2 - 1) * colorShift;
+        const gShift = (Math.random() * 2 - 1) * colorShift;
+        const bShift = (Math.random() * 2 - 1) * colorShift;
+        
+        // 밝기 변화 (백엔드: 1.0 + random.uniform(-brightness_range, brightness_range))
+        const brightness = 1.0 + (Math.random() * 2 - 1) * brightnessRange;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // 1. 가우시안 노이즈 (백엔드: np.random.normal(0, noise_level))
+          const gaussianNoise = () => {
+            // Box-Muller 변환으로 가우시안 분포 생성
+            const u1 = Math.random();
+            const u2 = Math.random();
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * noiseLevel;
+          };
+          
+          let r = data[i] + gaussianNoise();
+          let g = data[i + 1] + gaussianNoise();
+          let b = data[i + 2] + gaussianNoise();
+          
+          // 2. 색상 왜곡 적용
+          r += rShift;
+          g += gShift;
+          b += bShift;
+          
+          // 3. 밝기 변화 적용
+          r *= brightness;
+          g *= brightness;
+          b *= brightness;
+          
+          // 클리핑 (0-255 범위)
+          data[i] = Math.max(0, Math.min(255, r));
+          data[i + 1] = Math.max(0, Math.min(255, g));
+          data[i + 2] = Math.max(0, Math.min(255, b));
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      }
     });
-  }, [phase, currentQuestion]);
+  }, [phase, currentQuestion, difficulty]);
 
   // Phase B 드래그 핸들러
   const handlePhaseBDragStart = (index, e) => {
@@ -347,6 +427,41 @@ function DemoCaptcha({ onClose, onComplete }) {
               <span className="phase-title">{currentQuestion.question}</span>
             </div>
             
+            {/* 난이도 선택 */}
+            <div className="difficulty-selector">
+              <span className="difficulty-label">난이도:</span>
+              {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
+                <button
+                  key={key}
+                  className={`difficulty-btn ${difficulty === key ? 'active' : ''}`}
+                  style={{ 
+                    '--btn-color': config.color,
+                    borderColor: difficulty === key ? config.color : 'transparent',
+                    background: difficulty === key ? `${config.color}20` : 'transparent'
+                  }}
+                  onClick={() => setDifficulty(key)}
+                >
+                  {config.label}
+                </button>
+              ))}
+            </div>
+            
+            {/* 난이도 설명 */}
+            <div className="difficulty-info" style={{ color: DIFFICULTY_CONFIG[difficulty].color }}>
+              <div className="difficulty-desc">
+                {difficulty === 'NORMAL' && '✓ 노이즈 없음 - Phase 1에서 확실한 사람으로 판정'}
+                {difficulty === 'MEDIUM' && '⚡ 약한 노이즈 - Phase 1에서 애매한 행동 패턴 감지'}
+                {difficulty === 'HIGH' && '🔥 강한 노이즈 - Phase 1에서 봇에 가까운 행동 감지'}
+              </div>
+              {difficulty !== 'NORMAL' && (
+                <div className="difficulty-params">
+                  노이즈: {DIFFICULTY_CONFIG[difficulty].noiseLevel} | 
+                  색상왜곡: ±{DIFFICULTY_CONFIG[difficulty].colorShift} | 
+                  밝기: ±{(DIFFICULTY_CONFIG[difficulty].brightnessRange * 100).toFixed(0)}%
+                </div>
+              )}
+            </div>
+            
             {/* 3x3 이미지 그리드 */}
             <div className="captcha-grid demo-grid">
               {currentQuestion.images.map((emoji, index) => (
@@ -365,17 +480,17 @@ function DemoCaptcha({ onClose, onComplete }) {
               ))}
             </div>
             
-            {/* 드롭 영역 */}
-            <div id="demo-drop-zone" className="drop-zone">
-              {droppedItems.length === 0 ? (
-                <span className="drop-hint">여기에 드래그하세요</span>
-              ) : (
-                droppedItems.map((idx, i) => (
-                  <div key={i} className="dropped-item">
-                    {currentQuestion.images[idx]}
-                  </div>
-                ))
-              )}
+            {/* 드롭 영역 - 4칸 슬롯 */}
+            <div id="demo-drop-zone" className="drop-zone drop-zone-slots">
+              {[0, 1, 2, 3].map((slotIdx) => (
+                <div key={slotIdx} className={`drop-slot ${droppedItems[slotIdx] !== undefined ? 'filled' : ''}`}>
+                  {droppedItems[slotIdx] !== undefined ? (
+                    <span className="slot-emoji">{currentQuestion.images[droppedItems[slotIdx]]}</span>
+                  ) : (
+                    <span className="slot-number">{slotIdx + 1}</span>
+                  )}
+                </div>
+              ))}
             </div>
             
             <div className="phase-controls">
