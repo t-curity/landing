@@ -636,6 +636,7 @@ body {
   .hero-stats { gap: 1.5rem; }
   .stat strong { font-size: 1.5rem; }
   .sec-head h2 { font-size: 1.75rem; }
+  .demo-sec { padding: 6rem 1.5rem; }
   .demo-wrap { gap: 2rem; }
 }
 
