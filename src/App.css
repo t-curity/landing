@@ -339,7 +339,8 @@ body {
 /* ============================================
    Demo Section
    ============================================ */
-.demo-sec { padding: 6rem 0; background: var(--bg-card); }
+.demo-sec { padding: 6rem 2rem; background: var(--bg-card); }
+@media (min-width: 1300px) { .demo-sec { padding: 6rem 0; } }
 .demo-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
 @media (max-width: 768px) { .demo-wrap { grid-template-columns: 1fr; } }
 .demo-info h2 { font-size: 2rem; margin: 0.75rem 0; }
@@ -636,7 +637,7 @@ body {
   .hero-stats { gap: 1.5rem; }
   .stat strong { font-size: 1.5rem; }
   .sec-head h2 { font-size: 1.75rem; }
-  .demo-sec { padding: 6rem 1.5rem; }
+  .demo-sec { padding: 6rem 1.25rem; }
   .demo-wrap { gap: 2rem; }
 }
 
