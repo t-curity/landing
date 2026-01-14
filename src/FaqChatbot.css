@@ -360,3 +360,19 @@
   border-color: #272D4B;
   color: #272D4B;
 }
+
+[data-theme="light"] .chatbot-header-icon {
+  background: #272D4B;
+}
+
+[data-theme="light"] .chatbot-header-icon svg {
+  color: #fff;
+}
+
+[data-theme="light"] .chatbot-send {
+  background: #272D4B;
+}
+
+[data-theme="light"] .chatbot-send svg {
+  color: #fff;
+}
