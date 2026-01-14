@@ -36,7 +36,7 @@ const faqData = {
     {
       question: '문의는 어디로 하나요?',
       keywords: ['문의', '연락', '상담', '이메일', '지원', '고객'],
-      answer: '문의 방법:\n\n📧 이메일: support@tcurity.com\n💬 카카오톡: @tcurity\n📞 전화: 02-XXX-XXXX (평일 09-18시)\n\nEnterprise 플랜은 전담 매니저가 배정됩니다.'
+      answer: '문의 방법:\n\n📧 이메일: support@tcurity.com\n💬 카카오톡: @tcurity\n\nEnterprise 플랜은 전담 매니저가 배정됩니다.'
     },
     {
       question: '데모를 체험할 수 있나요?',

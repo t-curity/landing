@@ -20,6 +20,7 @@ const Icons = {
   apple: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>,
   car: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>,
   github: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>,
+  mail: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
 };
 
 // ============================================
@@ -116,7 +117,23 @@ const translations = {
       hard: '어려움',
       questions: ['원을 순서대로 선택하세요', '삼각형을 순서대로 선택하세요', '사각형을 순서대로 선택하세요']
     },
-    selector: { title: '모드 선택', live: '실제 SDK', liveDesc: '실제 인증 체험', demo: '데모', demoDesc: '노이즈 레벨 테스트' }
+    selector: { title: '모드 선택', live: '실제 SDK', liveDesc: '실제 인증 체험', demo: '데모', demoDesc: '노이즈 레벨 테스트' },
+    contactForm: {
+      title: '문의하기',
+      desc: '아래 양식을 작성해주시면 빠르게 연락드리겠습니다.',
+      name: '이름',
+      company: '회사명',
+      email: '이메일',
+      plan: '관심 플랜',
+      planOptions: ['Starter', 'Growth', 'Business', 'Enterprise'],
+      message: '문의 내용',
+      submit: '문의하기',
+      sending: '전송 중...',
+      success: '문의가 접수되었습니다!',
+      successDesc: '빠른 시일 내에 답변드리겠습니다.',
+      error: '전송에 실패했습니다. 다시 시도해주세요.',
+      close: '닫기'
+    }
   },
   en: {
     nav: { home: 'Home', pricing: 'Pricing', dashboard: 'Dashboard' },
@@ -208,7 +225,23 @@ const translations = {
       hard: 'Hard',
       questions: ['Select all circles in order', 'Select all triangles in order', 'Select all squares in order']
     },
-    selector: { title: 'Choose Mode', live: 'Live SDK', liveDesc: 'Real verification', demo: 'Demo', demoDesc: 'Test noise levels' }
+    selector: { title: 'Choose Mode', live: 'Live SDK', liveDesc: 'Real verification', demo: 'Demo', demoDesc: 'Test noise levels' },
+    contactForm: {
+      title: 'Contact Us',
+      desc: 'Fill out the form below and we\'ll get back to you shortly.',
+      name: 'Name',
+      company: 'Company',
+      email: 'Email',
+      plan: 'Interested Plan',
+      planOptions: ['Starter', 'Growth', 'Business', 'Enterprise'],
+      message: 'Message',
+      submit: 'Submit',
+      sending: 'Sending...',
+      success: 'Message sent!',
+      successDesc: 'We\'ll get back to you soon.',
+      error: 'Failed to send. Please try again.',
+      close: 'Close'
+    }
   }
 };
 
@@ -592,6 +625,108 @@ function CaptchaResult({ sessionId, error, onClose }) {
   );
 }
 
+// ============================================
+// Contact Form Modal
+// ============================================
+function ContactFormModal({ onClose, selectedPlan, t }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    company: '',
+    email: '',
+    plan: selectedPlan || 'Starter',
+    message: ''
+  });
+  const [status, setStatus] = useState('idle'); // idle, sending, success, error
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('sending');
+
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_key: '11807575-8b11-4760-b4f2-e52835dda1ff',
+          subject: `[T:CURITY] ${formData.plan} 플랜 문의 - ${formData.company || formData.name}`,
+          from_name: formData.name,
+          replyto: formData.email,
+          '이름': formData.name,
+          '회사명': formData.company || '-',
+          '이메일': formData.email,
+          '관심 플랜': formData.plan,
+          '문의 내용': formData.message || '-'
+        })
+      });
+
+      if (response.ok) {
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  return (
+    <div className="captcha-overlay" onClick={onClose}>
+      <div className="contact-modal" onClick={e => e.stopPropagation()}>
+        <button className="captcha-close" onClick={onClose}>×</button>
+        <div className="contact-header">
+          <div className="captcha-brand"><span>T:</span>CURITY</div>
+          <h3>{t.contactForm.title}</h3>
+          <p>{t.contactForm.desc}</p>
+        </div>
+
+        {status === 'success' ? (
+          <div className="contact-success">
+            <div className="success-icon">✓</div>
+            <h4>{t.contactForm.success}</h4>
+            <p>{t.contactForm.successDesc}</p>
+            <button className="contact-btn" onClick={onClose}>{t.contactForm.close}</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="contact-form">
+            <div className="form-group">
+              <label>{t.contactForm.name} *</label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>{t.contactForm.company}</label>
+              <input type="text" name="company" value={formData.company} onChange={handleChange} />
+            </div>
+            <div className="form-group">
+              <label>{t.contactForm.email} *</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>{t.contactForm.plan}</label>
+              <select name="plan" value={formData.plan} onChange={handleChange}>
+                {t.contactForm.planOptions.map((opt, i) => (
+                  <option key={i} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>{t.contactForm.message}</label>
+              <textarea name="message" value={formData.message} onChange={handleChange} rows={4} />
+            </div>
+            {status === 'error' && <p className="form-error">{t.contactForm.error}</p>}
+            <button type="submit" className="contact-btn" disabled={status === 'sending'}>
+              {status === 'sending' ? t.contactForm.sending : t.contactForm.submit}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 async function runTCurityCaptcha(clientId = "cust_alpha") {
   if (typeof window.TCuritySDK === 'undefined') throw new Error('SDK not loaded');
   return await window.TCuritySDK.captcha(clientId);
@@ -756,13 +891,15 @@ const planPrices = [
   { monthly: null, annual: null },
 ];
 
-function PricingSection({ t, lang }) {
+function PricingSection({ t, lang, onContactClick, onDemoClick }) {
   const [isAnnual, setIsAnnual] = useState(true);
   const formatPrice = (price) => {
     if (price === null) return t.pricing.negotiate;
     if (price === 0) return '₩0';
     return `₩${price.toLocaleString()}`;
   };
+
+  const planNames = ['Starter', 'Growth', 'Business', 'Enterprise'];
 
   return (
     <section className="pricing-section">
@@ -791,7 +928,7 @@ function PricingSection({ t, lang }) {
                 <span className="requests">{plan.requests} {t.pricing.requests}{t.pricing.perMonth}</span>
                 <span className="concurrent">{t.pricing.concurrent}: {plan.concurrent}</span>
               </div>
-              <button className={`card-cta ${idx === 2 ? 'primary' : ''}`}>{plan.cta}</button>
+              <button className={`card-cta ${idx === 2 ? 'primary' : ''}`} onClick={() => onContactClick(planNames[idx])}>{plan.cta}</button>
               <ul className="card-features">
                 {plan.features.map((f, i) => <li key={i} className="feature"><span className="check">✓</span>{f}</li>)}
                 {plan.limitations.map((l, i) => <li key={i} className="limitation"><span className="x">✗</span>{l}</li>)}
@@ -819,8 +956,8 @@ function PricingSection({ t, lang }) {
           <h3>{t.pricing.cta}</h3>
           <p>{t.pricing.ctaDesc}</p>
           <div className="cta-buttons">
-            <button className="btn primary">{t.pricing.start}</button>
-            <button className="btn ghost">{t.pricing.contact}</button>
+            <button className="btn primary" onClick={onDemoClick}>{t.pricing.start}</button>
+            <button className="btn ghost" onClick={() => onContactClick('Enterprise')}>{t.pricing.contact}</button>
           </div>
         </div>
       </div>
@@ -937,6 +1074,10 @@ function Footer({ t }) {
       <div className="container">
         <div className="footer-inner">
           <div className="footer-brand"><span className="logo-t">T</span><span className="logo-c">:</span><span className="logo-n">CURITY</span></div>
+          <a href="mailto:support@tcurity.com" className="footer-email">
+            <span className="footer-email-icon">{Icons.mail}</span>
+            support@tcurity.com
+          </a>
           <div className="footer-copy">{t.footer.copyright}</div>
         </div>
       </div>
@@ -955,6 +1096,8 @@ export default function App() {
   const [showDemo, setShowDemo] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [captchaResult, setCaptchaResult] = useState({ sessionId: null, error: null });
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('Starter');
 
   const t = translations[lang];
   useScrollAnimation(activeTab);
@@ -968,6 +1111,7 @@ export default function App() {
     catch (err) { setCaptchaResult({ sessionId: null, error: err.message }); setShowResult(true); }
   };
   const handleSelectDemo = () => { setShowSelector(false); setShowDemo(true); };
+  const handleContactClick = (plan) => { setSelectedPlan(plan); setShowContactForm(true); };
 
   return (
     <div className="app">
@@ -981,13 +1125,14 @@ export default function App() {
             <InstallSection t={t} />
           </>
         )}
-        {activeTab === 'pricing' && <PricingSection t={t} lang={lang} />}
+        {activeTab === 'pricing' && <PricingSection t={t} lang={lang} onContactClick={handleContactClick} onDemoClick={handleDemoClick} />}
         {activeTab === 'dashboard' && <DashboardSection t={t} />}
       </main>
       <Footer t={t} />
       {showSelector && <DemoSelector onSelectReal={handleSelectReal} onSelectDemo={handleSelectDemo} onClose={() => setShowSelector(false)} t={t} />}
       {showDemo && <DemoCaptcha onClose={() => setShowDemo(false)} onComplete={() => setShowDemo(false)} t={t} />}
       {showResult && <CaptchaResult sessionId={captchaResult.sessionId} error={captchaResult.error} onClose={() => setShowResult(false)} />}
+      {showContactForm && <ContactFormModal onClose={() => setShowContactForm(false)} selectedPlan={selectedPlan} t={t} />}
       <FaqChatbot lang={lang} />
     </div>
   );
