@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
+import FaqChatbot from './FaqChatbot';
+import './FaqChatbot.css';
 
 // ============================================
 // SVG Icons (Lucide-style, MIT License)
@@ -39,12 +41,12 @@ const translations = {
     },
     features: {
       title: 'T:CURITY를 선택해야 하는 이유',
-      desc: '단순한 체크박스가 아닙니다. 다층 검증으로 진짜 보안을 제공합니다.',
+      desc: 'AI 기반 행동 분석과 이미지 검증으로 빠르고 정확한 봇 탐지를 제공합니다.',
       items: [
-        { tag: 'Phase 1', title: '행동 패턴 분석', text: 'Isolation Forest 알고리즘으로 마우스 궤적과 미세 움직임을 실시간 분석합니다.' },
-        { tag: 'Phase 2', title: '이미지 분류', text: 'Random Forest 기반 시각적 인지 테스트로 2차 검증을 수행합니다.' },
-        { tag: '보안', title: '서버 검증', text: 'Zero-trust 아키텍처로 모든 토큰은 S2S 통신으로만 검증됩니다.' },
-        { tag: '보호', title: '요청 제한', text: 'IP 기반 적응형 스로틀링으로 무차별 대입 공격을 방어합니다.' },
+        { tag: 'Ticket Slice', title: '행동 패턴 분석', text: 'Isolation Forest 알고리즘으로 마우스 드래그 궤적과 속도 변화를 실시간 분석합니다.' },
+        { tag: 'Drag & Drop', title: '이미지 정렬', text: 'Random Forest 기반 드래그 행동 분석으로 2차 검증을 수행합니다.' },
+        { tag: '보안', title: '서버 검증', text: 'Zero-trust 아키텍처로 모든 토큰은 서버 간(S2S) 통신으로만 검증됩니다.' },
+        { tag: '보호', title: '요청 제한', text: 'IP 기반 적응형 Rate Limiting으로 무차별 대입 공격을 방어합니다.' },
       ]
     },
     demo: { title: '직접 체험해보세요', desc: '2-Phase 검증이 어떻게 작동하는지 경험해보세요.', phase1: '드래그 분석', phase2: '이미지 선택', launch: '데모 시작' },
@@ -131,12 +133,12 @@ const translations = {
     },
     features: {
       title: 'Why T:CURITY?',
-      desc: 'Not just a checkbox. Multi-layer verification that actually works.',
+      desc: 'Fast and accurate bot detection powered by AI-based behavioral analysis and image verification.',
       items: [
-        { tag: 'Phase 1', title: 'Behavioral Analysis', text: 'Isolation Forest algorithm analyzes mouse trajectories and micro-movements in real-time.' },
-        { tag: 'Phase 2', title: 'Image Classification', text: 'Random Forest based visual cognitive challenges for secondary verification.' },
-        { tag: 'Security', title: 'Server Validation', text: 'Zero-trust architecture with mandatory S2S token verification.' },
-        { tag: 'Protection', title: 'Rate Limiting', text: 'IP-based adaptive throttling against brute force attacks.' },
+        { tag: 'Ticket Slice', title: 'Behavioral Analysis', text: 'Isolation Forest algorithm analyzes mouse drag trajectories and speed variations in real-time.' },
+        { tag: 'Drag & Drop', title: 'Image Sorting', text: 'Random Forest based drag behavior analysis for secondary verification.' },
+        { tag: 'Security', title: 'Server Validation', text: 'Zero-trust architecture with mandatory server-to-server (S2S) token verification.' },
+        { tag: 'Protection', title: 'Rate Limiting', text: 'IP-based adaptive rate limiting against brute force attacks.' },
       ]
     },
     demo: { title: 'Try it yourself', desc: 'Experience the 2-phase verification flow.', phase1: 'Drag Analysis', phase2: 'Image Selection', launch: 'Launch Demo' },
@@ -689,9 +691,9 @@ function DemoSection({ onDemoClick, t }) {
             <span className="sec-tag animate-on-scroll">Live Demo</span>
             <h2 className="animate-on-scroll delay-1">{t.demo.title}</h2>
             <p className="animate-on-scroll delay-2">{t.demo.desc}</p>
-            <div className="demo-steps animate-on-scroll delay-3">
-              <div className="d-step"><span className="d-num">01</span><div><strong>Phase A</strong><span>{t.demo.phase1}</span></div></div>
-              <div className="d-step"><span className="d-num">02</span><div><strong>Phase B</strong><span>{t.demo.phase2}</span></div></div>
+            <div className="demo-steps animate-on-scroll delay0-3">
+              <div className="d-step"><span className="d-num">01</span><div><strong>Ticket Slice</strong><span>{t.demo.phase1}</span></div></div>
+              <div className="d-step"><span className="d-num">02</span><div><strong>Drag & Drop</strong><span>{t.demo.phase2}</span></div></div>
             </div>
             <button className="btn primary animate-on-scroll delay-4" onClick={onDemoClick}>{t.demo.launch} →</button>
           </div>
@@ -700,9 +702,9 @@ function DemoSection({ onDemoClick, t }) {
               <div className="preview-header"><span /><span /><span /></div>
               <div className="preview-body">
                 <div className="preview-flow">
-                  <div className="pf-item"><span>Phase 1</span><div className="pf-line" /></div>
+                  <div className="pf-item"><span>Ticket Slice</span><div className="pf-line" /></div>
                   <span className="pf-arrow">→</span>
-                  <div className="pf-item"><span>Phase 2</span><div className="pf-grid"><span>{Icons.dog}</span><span>{Icons.car}</span><span>{Icons.apple}</span></div></div>
+                  <div className="pf-item"><span>Drag & Drop</span><div className="pf-grid"><span>{Icons.dog}</span><span>{Icons.car}</span><span>{Icons.apple}</span></div></div>
                 </div>
               </div>
             </div>
@@ -986,6 +988,7 @@ export default function App() {
       {showSelector && <DemoSelector onSelectReal={handleSelectReal} onSelectDemo={handleSelectDemo} onClose={() => setShowSelector(false)} t={t} />}
       {showDemo && <DemoCaptcha onClose={() => setShowDemo(false)} onComplete={() => setShowDemo(false)} t={t} />}
       {showResult && <CaptchaResult sessionId={captchaResult.sessionId} error={captchaResult.error} onClose={() => setShowResult(false)} />}
+      <FaqChatbot lang={lang} />
     </div>
   );
 }
