@@ -327,3 +327,36 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Light mode styles */
+[data-theme="light"] .chatbot-msg.user .chatbot-bubble {
+  background: #272D4B;
+  color: #fff;
+}
+
+[data-theme="light"] .chatbot-avatar {
+  background: rgba(39, 45, 75, 0.1);
+}
+
+[data-theme="light"] .chatbot-avatar svg {
+  color: #272D4B;
+}
+
+[data-theme="light"] .chatbot-fab {
+  background: #272D4B;
+}
+
+[data-theme="light"] .chatbot-fab svg {
+  color: #fff;
+}
+
+[data-theme="light"] .chatbot-faq-btn {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #333;
+}
+
+[data-theme="light"] .chatbot-faq-btn:hover {
+  border-color: #272D4B;
+  color: #272D4B;
+}
