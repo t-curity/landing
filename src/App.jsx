@@ -607,7 +607,7 @@ function DemoSelector({ onSelectReal, onSelectDemo, onClose, t }) {
         <div className="selector-btns">
           <button className="sel-btn" onClick={onSelectReal}><span className="sel-icon">{Icons.lock}</span><strong>{t.selector.live}</strong><small>{t.selector.liveDesc}</small></button>
           <button className="sel-btn demo" onClick={onSelectDemo}><span className="sel-icon">{Icons.play}</span><strong>{t.selector.demo}</strong><small>{t.selector.demoDesc}</small></button>
-          <a href="/ticket-demo-site/" className="sel-btn ticket"><span className="sel-icon">{Icons.ticket}</span><strong>{t.selector.ticket}</strong><small>{t.selector.ticketDesc}</small></a>
+          <a href="/ticket-site-demo/" className="sel-btn ticket"><span className="sel-icon">{Icons.ticket}</span><strong>{t.selector.ticket}</strong><small>{t.selector.ticketDesc}</small></a>
         </div>
       </div>
     </div>
@@ -832,7 +832,7 @@ function DemoSection({ t }) {
               <div className="d-step"><span className="d-num">01</span><div><strong>Ticket Slice</strong><span>{t.demo.phase1}</span></div></div>
               <div className="d-step"><span className="d-num">02</span><div><strong>Drag & Drop</strong><span>{t.demo.phase2}</span></div></div>
             </div>
-            <a href="/ticket-demo-site/" className="btn primary animate-on-scroll delay-4">{t.demo.launch} →</a>
+            <a href="/ticket-site-demo/" className="btn primary animate-on-scroll delay-4">{t.demo.launch} →</a>
           </div>
           <div className="demo-preview animate-on-scroll slide-left">
             <div className="preview-card">
@@ -958,7 +958,7 @@ function PricingSection({ t, lang, onContactClick }) {
           <h3>{t.pricing.cta}</h3>
           <p>{t.pricing.ctaDesc}</p>
           <div className="cta-buttons">
-            <a href="/ticket-demo-site/" className="btn primary">{t.pricing.start}</a>
+            <a href="/ticket-site-demo/" className="btn primary">{t.pricing.start}</a>
             <button className="btn ghost" onClick={() => onContactClick('Enterprise')}>{t.pricing.contact}</button>
           </div>
         </div>
