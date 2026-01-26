@@ -624,12 +624,15 @@ body {
   color: var(--text);
   cursor: pointer; transition: all 0.2s;
   text-align: left;
+  text-decoration: none;
 }
 .sel-btn:hover { border-color: var(--primary); }
 .sel-btn span:first-child { font-size: 1.5rem; }
 .sel-btn strong { display: block; font-size: 0.95rem; }
 .sel-btn small { font-size: 0.8rem; color: var(--text-muted); }
 .sel-btn.demo { border-color: var(--primary); background: var(--primary-dim); }
+.sel-btn.ticket { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.sel-btn.ticket:hover { border-color: #10b981; background: rgba(16, 185, 129, 0.2); }
 
 /* ============================================
    Responsive

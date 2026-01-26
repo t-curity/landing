@@ -16,6 +16,7 @@ const Icons = {
   activity: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
   play: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  ticket: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>,
   dog: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5M14 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.344-2.5"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17l-.75-.75Z"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/></svg>,
   apple: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>,
   car: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>,
@@ -117,7 +118,7 @@ const translations = {
       hard: '어려움',
       questions: ['원을 순서대로 선택하세요', '삼각형을 순서대로 선택하세요', '사각형을 순서대로 선택하세요']
     },
-    selector: { title: '모드 선택', live: '실제 SDK', liveDesc: '실제 인증 체험', demo: '데모', demoDesc: '노이즈 레벨 테스트' },
+    selector: { title: '모드 선택', live: '실제 SDK', liveDesc: '실제 인증 체험', demo: '데모', demoDesc: '노이즈 레벨 테스트', ticket: '예매 데모', ticketDesc: '실제 예매 플로우 체험' },
     contactForm: {
       title: '문의하기',
       desc: '아래 양식을 작성해주시면 빠르게 연락드리겠습니다.',
@@ -225,7 +226,7 @@ const translations = {
       hard: 'Hard',
       questions: ['Select all circles in order', 'Select all triangles in order', 'Select all squares in order']
     },
-    selector: { title: 'Choose Mode', live: 'Live SDK', liveDesc: 'Real verification', demo: 'Demo', demoDesc: 'Test noise levels' },
+    selector: { title: 'Choose Mode', live: 'Live SDK', liveDesc: 'Real verification', demo: 'Demo', demoDesc: 'Test noise levels', ticket: 'Ticket Demo', ticketDesc: 'Try booking flow' },
     contactForm: {
       title: 'Contact Us',
       desc: 'Fill out the form below and we\'ll get back to you shortly.',
@@ -606,6 +607,7 @@ function DemoSelector({ onSelectReal, onSelectDemo, onClose, t }) {
         <div className="selector-btns">
           <button className="sel-btn" onClick={onSelectReal}><span className="sel-icon">{Icons.lock}</span><strong>{t.selector.live}</strong><small>{t.selector.liveDesc}</small></button>
           <button className="sel-btn demo" onClick={onSelectDemo}><span className="sel-icon">{Icons.play}</span><strong>{t.selector.demo}</strong><small>{t.selector.demoDesc}</small></button>
+          <a href="/ticket-demo-site/" className="sel-btn ticket"><span className="sel-icon">{Icons.ticket}</span><strong>{t.selector.ticket}</strong><small>{t.selector.ticketDesc}</small></a>
         </div>
       </div>
     </div>
@@ -817,7 +819,7 @@ function Features({ t }) {
   );
 }
 
-function DemoSection({ onDemoClick, t }) {
+function DemoSection({ t }) {
   return (
     <section id="demo" className="demo-sec">
       <div className="container">
@@ -830,7 +832,7 @@ function DemoSection({ onDemoClick, t }) {
               <div className="d-step"><span className="d-num">01</span><div><strong>Ticket Slice</strong><span>{t.demo.phase1}</span></div></div>
               <div className="d-step"><span className="d-num">02</span><div><strong>Drag & Drop</strong><span>{t.demo.phase2}</span></div></div>
             </div>
-            <button className="btn primary animate-on-scroll delay-4" onClick={onDemoClick}>{t.demo.launch} →</button>
+            <a href="/ticket-demo-site/" className="btn primary animate-on-scroll delay-4">{t.demo.launch} →</a>
           </div>
           <div className="demo-preview animate-on-scroll slide-left">
             <div className="preview-card">
@@ -891,7 +893,7 @@ const planPrices = [
   { monthly: null, annual: null },
 ];
 
-function PricingSection({ t, lang, onContactClick, onDemoClick }) {
+function PricingSection({ t, lang, onContactClick }) {
   const [isAnnual, setIsAnnual] = useState(true);
   const formatPrice = (price) => {
     if (price === null) return t.pricing.negotiate;
@@ -956,7 +958,7 @@ function PricingSection({ t, lang, onContactClick, onDemoClick }) {
           <h3>{t.pricing.cta}</h3>
           <p>{t.pricing.ctaDesc}</p>
           <div className="cta-buttons">
-            <button className="btn primary" onClick={onDemoClick}>{t.pricing.start}</button>
+            <a href="/ticket-demo-site/" className="btn primary">{t.pricing.start}</a>
             <button className="btn ghost" onClick={() => onContactClick('Enterprise')}>{t.pricing.contact}</button>
           </div>
         </div>
@@ -1119,13 +1121,13 @@ export default function App() {
       <main>
         {activeTab === 'home' && (
           <>
-            <Hero onDemoClick={handleDemoClick} t={t} />
+            <Hero t={t} />
             <Features t={t} />
-            <DemoSection onDemoClick={handleDemoClick} t={t} />
+            <DemoSection t={t} />
             <InstallSection t={t} />
           </>
         )}
-        {activeTab === 'pricing' && <PricingSection t={t} lang={lang} onContactClick={handleContactClick} onDemoClick={handleDemoClick} />}
+        {activeTab === 'pricing' && <PricingSection t={t} lang={lang} onContactClick={handleContactClick} />}
         {activeTab === 'dashboard' && <DashboardSection t={t} />}
       </main>
       <Footer t={t} />
