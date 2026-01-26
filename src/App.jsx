@@ -1121,7 +1121,7 @@ export default function App() {
       <main>
         {activeTab === 'home' && (
           <>
-            <Hero t={t} />
+            <Hero onDemoClick={handleDemoClick} t={t} />
             <Features t={t} />
             <DemoSection t={t} />
             <InstallSection t={t} />
