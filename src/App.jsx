@@ -13,7 +13,6 @@ const Icons = {
   zap: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
   check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>,
   globe: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
-  activity: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
   play: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
   ticket: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>,
@@ -29,7 +28,7 @@ const Icons = {
 // ============================================
 const translations = {
   ko: {
-    nav: { home: '홈', pricing: '가격', dashboard: '대시보드' },
+    nav: { home: '홈', pricing: '가격' },
     hero: {
       badge: '차세대 CAPTCHA 보안',
       title1: '봇은 막고,',
@@ -88,18 +87,6 @@ const translations = {
         ]
       }
     },
-    dashboard: {
-      title: '실시간 모니터링',
-      desc: '봇 차단 현황과 트래픽을 한눈에 확인하세요',
-      requests: '총 요청',
-      blocked: '차단됨',
-      rate: '성공률',
-      latency: '평균 지연',
-      region: '지역별 트래픽',
-      activity: '최근 활동',
-      country: '국가',
-      healthy: '정상'
-    },
     footer: { copyright: '© 2026 T:CURITY. All rights reserved.' },
     captcha: {
       title: '사람 인증',
@@ -137,7 +124,7 @@ const translations = {
     }
   },
   en: {
-    nav: { home: 'Home', pricing: 'Pricing', dashboard: 'Dashboard' },
+    nav: { home: 'Home', pricing: 'Pricing' },
     hero: {
       badge: 'Next-Gen CAPTCHA Security',
       title1: 'Block Bots.',
@@ -196,18 +183,6 @@ const translations = {
         ]
       }
     },
-    dashboard: {
-      title: 'Real-time Monitoring',
-      desc: 'Monitor bot blocking and traffic at a glance',
-      requests: 'Total Requests',
-      blocked: 'Blocked',
-      rate: 'Success Rate',
-      latency: 'Avg Latency',
-      region: 'Traffic by Region',
-      activity: 'Recent Activity',
-      country: 'Country',
-      healthy: 'Healthy'
-    },
     footer: { copyright: '© 2026 T:CURITY. All rights reserved.' },
     captcha: {
       title: 'Human Verification',
@@ -255,13 +230,9 @@ const DIFFICULTY_CONFIG = {
 // 스크롤 애니메이션
 function useScrollAnimation(activeTab) {
   useEffect(() => {
-    // 약간의 딜레이 후 애니메이션 시작 (DOM 렌더링 완료 대기)
     const timer = setTimeout(() => {
       const elements = document.querySelectorAll('.animate-on-scroll');
-      
-      // 먼저 모든 요소에서 visible 제거
       elements.forEach(el => el.classList.remove('visible'));
-      
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach(entry => {
@@ -272,13 +243,9 @@ function useScrollAnimation(activeTab) {
         },
         { threshold: 0.05, rootMargin: '50px 0px -20px 0px' }
       );
-      
       elements.forEach(el => observer.observe(el));
-      
-      // 클린업 함수를 저장
       return () => observer.disconnect();
     }, 50);
-    
     return () => clearTimeout(timer);
   }, [activeTab]);
 }
@@ -299,26 +266,21 @@ function DemoCaptcha({ onClose, onComplete, t }) {
   const canvasRef = useRef(null);
   const imageCanvasRefs = useRef([]);
 
-  // 질문별 이미지 구성: 심플한 도형 사용
   const demoQuestions = [
     { 
-      // 원을 순서대로 선택하세요
       answers: [0, 3, 5, 8],
       icons: ['circle', 'triangle', 'square', 'circle', 'diamond', 'circle', 'triangle', 'square', 'circle']
     },
     { 
-      // 삼각형을 순서대로 선택하세요
       answers: [1, 4, 6, 7],
       icons: ['circle', 'triangle', 'square', 'diamond', 'triangle', 'circle', 'triangle', 'triangle', 'square']
     },
     { 
-      // 사각형을 순서대로 선택하세요
       answers: [2, 3, 5, 8],
       icons: ['circle', 'triangle', 'square', 'square', 'diamond', 'square', 'circle', 'triangle', 'square']
     },
   ];
 
-  // 아이콘 그리기 함수 - 심플한 도형
   const drawIcon = (ctx, type, size) => {
     const c = size / 2;
     const r = size * 0.32;
@@ -334,7 +296,6 @@ function DemoCaptcha({ onClose, onComplete, t }) {
         ctx.arc(c, c, r, 0, Math.PI * 2);
         ctx.stroke();
         break;
-
       case 'triangle':
         ctx.beginPath();
         ctx.moveTo(c, c - r);
@@ -343,12 +304,10 @@ function DemoCaptcha({ onClose, onComplete, t }) {
         ctx.closePath();
         ctx.stroke();
         break;
-
       case 'square':
         const half = r * 0.8;
         ctx.strokeRect(c - half, c - half, half * 2, half * 2);
         break;
-
       case 'diamond':
         ctx.beginPath();
         ctx.moveTo(c, c - r);
@@ -358,7 +317,6 @@ function DemoCaptcha({ onClose, onComplete, t }) {
         ctx.closePath();
         ctx.stroke();
         break;
-
       default:
         ctx.beginPath();
         ctx.arc(c, c, r * 0.5, 0, Math.PI * 2);
@@ -444,12 +402,9 @@ function DemoCaptcha({ onClose, onComplete, t }) {
       const ctx = canvas.getContext('2d');
       const size = 72;
       canvas.width = size; canvas.height = size;
-      
       ctx.fillStyle = '#0c0c14';
       ctx.fillRect(0, 0, size, size);
-      
       drawIcon(ctx, iconType, size);
-      
       if (noiseLevel > 0) {
         const imageData = ctx.getImageData(0, 0, size, size);
         const data = imageData.data;
@@ -638,7 +593,7 @@ function ContactFormModal({ onClose, selectedPlan, t }) {
     plan: selectedPlan || 'Starter',
     message: ''
   });
-  const [status, setStatus] = useState('idle'); // idle, sending, success, error
+  const [status, setStatus] = useState('idle');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -750,7 +705,6 @@ function Nav({ isDark, onThemeToggle, activeTab, setActiveTab, lang, setLang, t 
           <div className="nav-links">
             <a href="#" className={activeTab === 'home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('home'); }}>{t.nav.home}</a>
             <a href="#" className={activeTab === 'pricing' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('pricing'); }}>{t.nav.pricing}</a>
-            <a href="#" className={activeTab === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}>{t.nav.dashboard}</a>
           </div>
           <div className="nav-right">
             <button className="lang-btn" onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}>{lang === 'ko' ? 'EN' : '한국어'}</button>
@@ -763,7 +717,6 @@ function Nav({ isDark, onThemeToggle, activeTab, setActiveTab, lang, setLang, t 
       <div className={`mobile-nav ${open ? 'open' : ''}`}>
         <a href="#" className={activeTab === 'home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('home'); setOpen(false); }}>{t.nav.home}</a>
         <a href="#" className={activeTab === 'pricing' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('pricing'); setOpen(false); }}>{t.nav.pricing}</a>
-        <a href="#" className={activeTab === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); setOpen(false); }}>{t.nav.dashboard}</a>
         <button className="lang-btn mobile" onClick={() => { setLang(lang === 'ko' ? 'en' : 'ko'); setOpen(false); }}>{lang === 'ko' ? 'EN' : '한국어'}</button>
       </div>
       {open && <div className="nav-overlay" onClick={() => setOpen(false)} />}
@@ -968,106 +921,6 @@ function PricingSection({ t, lang, onContactClick }) {
 }
 
 // ============================================
-// Dashboard Section
-// ============================================
-function Sparkline({ data, height = 32 }) {
-  const max = Math.max(...data);
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * 100},${100 - (v / max) * 100}`).join(' ');
-  return <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height }}><polyline fill="none" stroke="var(--primary)" strokeWidth="2" points={points} /></svg>;
-}
-
-function DashboardSection({ t }) {
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    const gen = () => ({
-      hours: Array.from({ length: 24 }, () => ({ req: Math.floor(Math.random() * 4000) + 800, block: Math.floor(Math.random() * 400) + 40 })),
-      countries: [
-        { name: 'South Korea', code: 'KR', req: 45230, block: 2341 },
-        { name: 'United States', code: 'US', req: 12450, block: 892 },
-        { name: 'China', code: 'CN', req: 8920, block: 4521 },
-        { name: 'Japan', code: 'JP', req: 6780, block: 234 },
-        { name: 'Vietnam', code: 'VN', req: 3450, block: 1823 },
-      ],
-      logs: [
-        { id: 1, type: 'block', ip: '192.168.1.xxx', msg: 'Bot detected', t: '2m' },
-        { id: 2, type: 'pass', ip: '10.0.0.xxx', msg: 'Verified', t: '3m' },
-        { id: 3, type: 'block', ip: '172.16.0.xxx', msg: 'Rate exceeded', t: '5m' },
-        { id: 4, type: 'pass', ip: '192.168.2.xxx', msg: 'Verified', t: '6m' },
-        { id: 5, type: 'block', ip: '10.1.1.xxx', msg: 'Abnormal pattern', t: '8m' },
-      ]
-    });
-    setData(gen());
-    const id = setInterval(() => setData(gen()), 5000);
-    return () => clearInterval(id);
-  }, []);
-  
-  if (!data) return null;
-  const stats = { requests: 78432, blocked: 4521, rate: 94.2, latency: 312 };
-
-  return (
-    <section className="dashboard-section">
-      <div className="container">
-        <div className="sec-head animate-on-scroll">
-          <span className="sec-tag">Dashboard</span>
-          <h2>{t.dashboard.title}</h2>
-          <p>{t.dashboard.desc}</p>
-        </div>
-        
-        <div className="dash-stats animate-on-scroll delay-1">
-          <div className="dash-stat">
-            <div className="dash-stat-icon">{Icons.activity}</div>
-            <div className="dash-stat-info"><span className="dash-stat-value">{stats.requests.toLocaleString()}</span><span className="dash-stat-label">{t.dashboard.requests}</span></div>
-            <Sparkline data={data.hours.map(h => h.req)} />
-          </div>
-          <div className="dash-stat">
-            <div className="dash-stat-icon">{Icons.shield}</div>
-            <div className="dash-stat-info"><span className="dash-stat-value">{stats.blocked.toLocaleString()}</span><span className="dash-stat-label">{t.dashboard.blocked}</span></div>
-            <Sparkline data={data.hours.map(h => h.block)} />
-          </div>
-          <div className="dash-stat">
-            <div className="dash-stat-icon">{Icons.check}</div>
-            <div className="dash-stat-info"><span className="dash-stat-value">{stats.rate}%</span><span className="dash-stat-label">{t.dashboard.rate}</span></div>
-            <div className="progress-bar"><div className="progress-fill" style={{ width: `${stats.rate}%` }} /></div>
-          </div>
-          <div className="dash-stat">
-            <div className="dash-stat-icon">{Icons.zap}</div>
-            <div className="dash-stat-info"><span className="dash-stat-value">{stats.latency}ms</span><span className="dash-stat-label">{t.dashboard.latency}</span></div>
-            <div className="health-indicator"><span className="health-dot" /> {t.dashboard.healthy}</div>
-          </div>
-        </div>
-        
-        <div className="dash-panels animate-on-scroll delay-2">
-          <div className="dash-panel">
-            <h4><span className="panel-icon">{Icons.globe}</span>{t.dashboard.region}</h4>
-            <table className="dash-table">
-              <thead><tr><th>{t.dashboard.country}</th><th>{t.dashboard.requests}</th><th>{t.dashboard.blocked}</th></tr></thead>
-              <tbody>
-                {data.countries.map((c, i) => (
-                  <tr key={i}><td><span className="country-code">{c.code}</span>{c.name}</td><td>{c.req.toLocaleString()}</td><td>{c.block.toLocaleString()}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="dash-panel">
-            <h4><span className="panel-icon">{Icons.activity}</span>{t.dashboard.activity}</h4>
-            <div className="dash-logs">
-              {data.logs.map(log => (
-                <div key={log.id} className={`dash-log ${log.type}`}>
-                  <span className="log-icon">{log.type === 'pass' ? '✓' : '✗'}</span>
-                  <div className="log-info"><span className="log-ip">{log.ip}</span><span className="log-msg">{log.msg}</span></div>
-                  <span className="log-time">{log.t}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================
 // Footer
 // ============================================
 function Footer({ t }) {
@@ -1128,7 +981,6 @@ export default function App() {
           </>
         )}
         {activeTab === 'pricing' && <PricingSection t={t} lang={lang} onContactClick={handleContactClick} />}
-        {activeTab === 'dashboard' && <DashboardSection t={t} />}
       </main>
       <Footer t={t} />
       {showSelector && <DemoSelector onSelectReal={handleSelectReal} onSelectDemo={handleSelectDemo} onClose={() => setShowSelector(false)} t={t} />}
